@@ -431,8 +431,9 @@ ul.summary-questions { list-style: none; padding: 0; display: flex; flex-directi
   letter-spacing: 0;
   line-height: 0.6;
   color: var(--accent);
-  /* A hairline stroke gives the pen script enough weight beside the 800-weight headline. */
-  -webkit-text-stroke: 0.012em currentColor;
+  /* The script has a single, hairline weight; an outline stroke thickens the pen line so it
+     holds its own beside the 800-weight headline. */
+  -webkit-text-stroke: 0.032em currentColor;
   padding: 0 0.08em 0 0.02em;
 }
 /* Own line, with headroom for the script's tall ascenders. */
