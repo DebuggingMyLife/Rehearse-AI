@@ -74,7 +74,7 @@ export default function CvConfirmPage({ sessionId }: { sessionId: string }) {
                 : "Continue to questions"
               : "Looks right, generate questions"}
         </button>
-        <button onClick={() => navigate("/")} disabled={busy}>
+        <button onClick={() => navigate("/start")} disabled={busy}>
           Upload a different CV
         </button>
         {busy && !hasQuestions && <span className="muted small">Usually 10 to 20 seconds on a GPU.</span>}

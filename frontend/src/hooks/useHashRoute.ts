@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 export type Route =
+  | { page: "landing" }
   | { page: "setup" }
   | { page: "cv"; sessionId: string }
   | { page: "questions"; sessionId: string }
@@ -18,7 +19,8 @@ function parse(hash: string): Route {
   if (parts[0] === "s" && parts[1]) {
     return parts[2] === "cv" ? { page: "cv", sessionId: parts[1] } : { page: "questions", sessionId: parts[1] };
   }
-  return { page: "setup" };
+  if (parts[0] === "start") return { page: "setup" };
+  return { page: "landing" };
 }
 
 export function navigate(path: string) {

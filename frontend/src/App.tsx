@@ -3,6 +3,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import { useHashRoute } from "./hooks/useHashRoute";
 import AttemptPage from "./pages/AttemptPage";
 import CvConfirmPage from "./pages/CvConfirmPage";
+import LandingPage from "./pages/LandingPage";
 import QuestionsPage from "./pages/QuestionsPage";
 import SetupPage from "./pages/SetupPage";
 import SummaryPage from "./pages/SummaryPage";
@@ -23,6 +24,7 @@ export default function App() {
       </header>
       <StatusProblems health={health} backendDown={backendDown} refresh={refresh} />
       <main>
+        {route.page === "landing" && <LandingPage />}
         {route.page === "setup" && <SetupPage />}
         {route.page === "cv" && <CvConfirmPage key={route.sessionId} sessionId={route.sessionId} />}
         {route.page === "attempt" && (

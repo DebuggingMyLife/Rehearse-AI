@@ -148,7 +148,7 @@ export default function QuestionsPage({ sessionId }: { sessionId: string }) {
               </a>
             </>
           )}
-          <button onClick={() => navigate("/")}>New session</button>
+          <button onClick={() => navigate("/start")}>New session</button>
         </div>
       </div>
 
