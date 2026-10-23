@@ -138,7 +138,8 @@ def test_score_clamped_to_coverage_band():
 
     assert consistent_score(1, covered=1, total=6) == 2  # 1 means "nothing covered"
     assert consistent_score(2, covered=6, total=6) == 4  # everything covered can't be a 2
-    assert consistent_score(5, covered=0, total=4) == 2  # nothing covered can't be a 5
+    assert consistent_score(5, covered=0, total=4) == 1  # nothing covered is a 1
+    assert consistent_score(2, covered=0, total=4) == 1
     assert consistent_score(3, covered=3, total=6) == 3  # consistent scores are untouched
     assert consistent_score(4, covered=3, total=6) == 4
 

@@ -4,6 +4,7 @@ import AttemptPage from "./pages/AttemptPage";
 import CvConfirmPage from "./pages/CvConfirmPage";
 import QuestionsPage from "./pages/QuestionsPage";
 import SetupPage from "./pages/SetupPage";
+import SummaryPage from "./pages/SummaryPage";
 
 export default function App() {
   const route = useHashRoute();
@@ -22,6 +23,7 @@ export default function App() {
         {route.page === "attempt" && (
           <AttemptPage key={route.questionId} sessionId={route.sessionId} questionId={route.questionId} />
         )}
+        {route.page === "summary" && <SummaryPage key={route.sessionId} sessionId={route.sessionId} />}
         {route.page === "questions" && <QuestionsPage key={route.sessionId} sessionId={route.sessionId} />}
       </main>
     </div>

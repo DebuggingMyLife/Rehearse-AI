@@ -51,6 +51,31 @@ export interface Session {
   cv_text: string;
   job_description: string;
   questions: Question[];
+  ended_at: string | null;
+  summary: SessionSummary | null;
+}
+
+export interface SessionStats {
+  questions_total: number;
+  questions_answered: number;
+  attempts_scored: number;
+  avg_best_score: number | null;
+  retried: { question_id: number; first: number; best: number }[];
+  delivery: {
+    avg_wpm: number | null;
+    fillers_per_min: number | null;
+    avg_fillers: number | null;
+    avg_long_pauses: number | null;
+  };
+}
+
+export interface SessionSummary {
+  recurring_strengths: string[];
+  recurring_weaknesses: string[];
+  top_priorities: { title: string; why: string; how_to_practise: string }[];
+  overall: string;
+  stats: SessionStats;
+  generated_at: string;
 }
 
 export type AttemptStatus = "uploaded" | "transcribing" | "analysing" | "complete" | "too_short" | "failed";
@@ -243,6 +268,8 @@ export const api = {
 
   generateQuestions: (id: string, req: GenerateRequest) =>
     request<GenerateResponse>(`/api/sessions/${id}/questions`, json("POST", req)),
+
+  endSession: (id: string) => request<Session>(`/api/sessions/${id}/end`, { method: "POST" }),
 
   getQuestion: (questionId: number) => request<QuestionDetail>(`/api/questions/${questionId}`),
 

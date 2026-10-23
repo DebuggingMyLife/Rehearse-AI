@@ -137,7 +137,19 @@ export default function QuestionsPage({ sessionId }: { sessionId: string }) {
             <a href={`#/s/${sessionId}/cv`}>review</a>
           </p>
         </div>
-        <button onClick={() => navigate("/")}>New session</button>
+        <div className="actions">
+          {attempted > 0 && (
+            <>
+              <button className="primary" onClick={() => navigate(`/s/${sessionId}/summary`)}>
+                {session.summary ? "View summary" : "End session & summarise"}
+              </button>
+              <a className="button" href={`/api/sessions/${sessionId}/export.pdf`} download>
+                Export PDF
+              </a>
+            </>
+          )}
+          <button onClick={() => navigate("/")}>New session</button>
+        </div>
       </div>
 
       {session.questions.length === 0 ? (

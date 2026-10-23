@@ -1,15 +1,20 @@
 import logging
+import re
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from ..config import get_settings
-from ..db import get_db
+from ..db import SessionLocal, get_db
 from ..models import InterviewSession
 from ..schemas.api import SessionOut, SessionUpdate
 from ..services.cv_parser import CVParseError, parse_cv
+from ..services.export_pdf import build_session_pdf
+from ..services.llm import LLMUnavailable, get_llm
+from ..services.summary import NothingToSummarise, session_stats, summarise_session
+from ..worker import run_job
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -72,3 +77,39 @@ def update_session(session_id: str, body: SessionUpdate, db: Session = Depends(g
     db.commit()
     db.refresh(s)
     return SessionOut.from_model(s)
+
+
+@router.get("/{session_id}/stats")
+def get_stats(session_id: str, db: Session = Depends(get_db)):
+    """Score and delivery statistics, computed without the LLM."""
+    return session_stats(load_session(db, session_id))
+
+
+def _summarise_job(session_id: str) -> SessionOut:
+    with SessionLocal() as db:
+        return SessionOut.from_model(summarise_session(db, get_llm(), session_id))
+
+
+@router.post("/{session_id}/end", response_model=SessionOut)
+async def end_session(session_id: str, db: Session = Depends(get_db)):
+    """End the session and generate the summary (can be called again to regenerate)."""
+    load_session(db, session_id)
+    try:
+        return await run_job(_summarise_job, session_id)
+    except NothingToSummarise as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except LLMUnavailable as exc:
+        raise HTTPException(503, f"Summary unavailable, please try again. {exc}") from exc
+
+
+@router.get("/{session_id}/export.pdf")
+async def export_pdf(session_id: str):
+    def build() -> tuple[bytes, str]:
+        with SessionLocal() as db:
+            s = load_session(db, session_id)
+            return build_session_pdf(s), s.created_at.strftime("%Y-%m-%d")
+
+    pdf, date = await run_in_threadpool(build)
+    name = re.sub(r"[^A-Za-z0-9-]", "", f"retake-session-{date}") + ".pdf"
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})

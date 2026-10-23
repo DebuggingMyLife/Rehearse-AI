@@ -1,0 +1,111 @@
+{
+  "cv_text": "Alex Chen\nBackend Software Engineer · Sydney\nExperience\nSenior Software Engineer, PayLoop (fintech) — 2022–present\n• Led migration of the payments ledger from a monolith to event-driven microservices on Kafka, reducing settlement latency from 4 hours to 15 minutes.\n• Designed idempotent payment APIs in Python/FastAPI handling 2M requests/day; cut duplicate-charge incidents to zero.\n• Mentored 3 junior engineers; introduced code review guidelines adopted across 4 teams.\n• On-call lead during a PostgreSQL outage; wrote the postmortem and added replica failover runbooks.\nSoftware Engineer, ShopStack (e-commerce) — 2019–2022\n• Built inventory sync service in Go integrating 12 supplier APIs; reduced stock mismatches by 70%.\n• Introduced Redis caching for the product catalogue, lowering p95 latency from 800ms to 120ms.\n• Disagreed with product team on a rushed launch; negotiated a phased rollout behind feature flags.\nEducation\nB.Eng (Software), University of New South Wales, 2018\nSkills\nPython, Go, FastAPI, PostgreSQL, Kafka, Redis, Docker, Kubernetes, AWS, Terraform",
+  "job_description": "Senior Backend Engineer - Atlas Health\nWe're building a platform that connects patients with clinics across Australia. You will design and own reliable, secure backend services that handle sensitive health data.\nRequirements:\n- 5+ years building backend services in Python or Go\n- Experience designing APIs and distributed systems (queues, event-driven architecture)\n- Strong PostgreSQL skills, data modelling, and performance tuning\n- Experience with AWS, infrastructure as code, and observability\n- Understanding of security and privacy practices for sensitive data\n- Ability to mentor engineers and communicate trade-offs to non-technical stakeholders",
+  "samples": [
+    {
+      "name": "strong_technical",
+      "kind": "strong",
+      "question": "How would you model appointment bookings in PostgreSQL so that two patients can never book the same clinician slot?",
+      "type": "technical",
+      "difficulty": "medium",
+      "rubric": [
+        "Uses a database constraint (unique or exclusion constraint) rather than only application checks",
+        "Handles concurrent requests with transactions or row locking",
+        "Models slots/appointments with clear tables and keys",
+        "Considers indexing for the common booking queries"
+      ],
+      "transcript": "I'd make the database enforce it rather than trusting the application. I'd have a clinicians table, a slots table with clinician ID, start and end time, and an appointments table that references the slot. The key piece is a unique constraint on slot ID in appointments, or if bookings are free-form time ranges, an exclusion constraint using a tstzrange with the gist index so overlapping ranges for the same clinician are rejected. Then two concurrent requests both try to insert, and one fails with a constraint violation, which the API turns into a 409 so the user picks another slot. I'd wrap the booking in a transaction, and if we also decrement capacity I'd use SELECT FOR UPDATE on the slot row. For performance I'd index clinician ID plus start time, since the main query is available slots for a clinician this week.",
+      "expected": [4, 5]
+    },
+    {
+      "name": "strong_behavioural_star",
+      "kind": "strong",
+      "question": "Tell me about a time you disagreed with a stakeholder about a decision. How did you handle it?",
+      "type": "behavioural",
+      "difficulty": "medium",
+      "rubric": [
+        "Sets out a specific situation and what the disagreement was about",
+        "Explains their reasoning with evidence or data",
+        "Describes concrete actions taken to reach agreement rather than just escalating",
+        "States the outcome and what they learned"
+      ],
+      "transcript": "At ShopStack the product team wanted to launch a big catalogue change in one go, two weeks early. I disagreed, because our inventory sync with twelve supplier APIs had not been tested at that scale. My task was to protect the launch date without risking stock errors. I pulled the mismatch data from the last release, showed the product manager that about one in twenty products went out of sync under load, and proposed a phased rollout behind feature flags, starting with ten percent of users. We agreed on that together rather than escalating. As a result we caught two supplier bugs in the first phase, the full launch still went out on time, and stock mismatches stayed low. What I took from it is to bring data to a disagreement and offer an alternative, not just a no.",
+      "expected": [4, 5]
+    },
+    {
+      "name": "strong_cv_specific",
+      "kind": "strong",
+      "question": "Walk me through the migration of the payments ledger to event-driven microservices at PayLoop. What was your role?",
+      "type": "cv_specific",
+      "difficulty": "hard",
+      "rubric": [
+        "Explains the problem with the monolith and why it needed to change",
+        "Describes their own role and key design decisions (e.g. event schema, Kafka topics)",
+        "Explains how they managed risk during the migration (parallel run, rollback)",
+        "Quantifies the outcome"
+      ],
+      "transcript": "The ledger was a monolith that settled payments in a nightly batch, so merchants waited around four hours for settlement and any failure meant rerunning the whole batch. I led the migration. I designed the event schema with the finance team so every ledger entry became an immutable event on Kafka, partitioned by merchant ID so ordering held per merchant, and the settlement service consumed those events continuously. To manage the risk we ran the old and new systems in parallel for six weeks and reconciled the totals every day, with a feature flag so we could switch merchants back if the numbers differed. In the end settlement latency went from four hours to fifteen minutes, and we retired the batch job.",
+      "expected": [4, 5]
+    },
+    {
+      "name": "weak_vague",
+      "kind": "weak",
+      "question": "Tell me about a time you disagreed with a stakeholder about a decision. How did you handle it?",
+      "type": "behavioural",
+      "difficulty": "medium",
+      "rubric": [
+        "Sets out a specific situation and what the disagreement was about",
+        "Explains their reasoning with evidence or data",
+        "Describes concrete actions taken to reach agreement rather than just escalating",
+        "States the outcome and what they learned"
+      ],
+      "transcript": "Um, yeah, I think disagreements happen all the time in software, you know. I always try to listen to the other person and, like, understand where they're coming from. Communication is really important. Usually we just talk it through and find a middle ground, and it works out fine in the end. I'm a pretty easygoing person so it's never really a big problem for me.",
+      "expected": [1, 2]
+    },
+    {
+      "name": "off_topic",
+      "kind": "off-topic",
+      "question": "How would you model appointment bookings in PostgreSQL so that two patients can never book the same clinician slot?",
+      "type": "technical",
+      "difficulty": "medium",
+      "rubric": [
+        "Uses a database constraint (unique or exclusion constraint) rather than only application checks",
+        "Handles concurrent requests with transactions or row locking",
+        "Models slots/appointments with clear tables and keys",
+        "Considers indexing for the common booking queries"
+      ],
+      "transcript": "So at ShopStack I introduced Redis caching for the product catalogue, and that brought the p95 latency down from eight hundred milliseconds to about a hundred and twenty. We cached the product pages with a short TTL and invalidated on updates from the inventory service. It made a big difference to the user experience, especially during sales.",
+      "expected": [1, 2]
+    },
+    {
+      "name": "near_empty",
+      "kind": "empty",
+      "question": "Tell me about a time you disagreed with a stakeholder about a decision. How did you handle it?",
+      "type": "behavioural",
+      "difficulty": "medium",
+      "rubric": [
+        "Sets out a specific situation and what the disagreement was about",
+        "Explains their reasoning with evidence or data",
+        "Describes concrete actions taken to reach agreement rather than just escalating",
+        "States the outcome and what they learned"
+      ],
+      "transcript": "Um, I'm not sure. Sorry, I can't think of one right now.",
+      "expected": [1, 1]
+    },
+    {
+      "name": "empty",
+      "kind": "empty",
+      "question": "Tell me about a time you disagreed with a stakeholder about a decision. How did you handle it?",
+      "type": "behavioural",
+      "difficulty": "medium",
+      "rubric": [
+        "Sets out a specific situation and what the disagreement was about",
+        "Explains their reasoning with evidence or data",
+        "Describes concrete actions taken to reach agreement rather than just escalating",
+        "States the outcome and what they learned"
+      ],
+      "transcript": "",
+      "expected": [1, 1]
+    }
+  ]
+}

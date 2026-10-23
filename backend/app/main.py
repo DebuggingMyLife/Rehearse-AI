@@ -13,6 +13,7 @@ from .db import SessionLocal, init_db
 from .events import bus
 from .models import Attempt, AttemptStatus
 from .routers import attempts, health, questions, sessions
+from .services.cleanup import cleanup_loop
 from .services.llm import check_ollama
 from .services.pipeline import process_attempt
 from .services.transcription import load_transcriber
@@ -51,7 +52,11 @@ async def lifespan(app: FastAPI):
         background.add(asyncio.create_task(worker.run_job(process_attempt, attempt_id)))
     if pending_ids:
         log.info("Re-queued %d unfinished attempt(s)", len(pending_ids))
+    # Privacy retention: delete old sessions now and every few hours.
+    background.add(asyncio.create_task(cleanup_loop(settings)))
     yield
+    for task in background:
+        task.cancel()
     worker.shutdown()
 
 

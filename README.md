@@ -104,6 +104,60 @@ the server does this during startup and the result is cached for later runs.
 Add `-Reload` / `--reload` for backend auto-reload during development. Press Ctrl+C to
 stop both.
 
+## Using it
+
+1. **Upload** your CV (PDF or DOCX) and paste the job description. Check the extracted CV
+   text and fix anything that parsed badly.
+2. **Questions**: 5 are generated (behavioural, technical, CV-specific; easy to hard).
+   "Generate more" adds more, optionally of one type or difficulty, without repeats.
+3. **Answer** a question out loud: record, replay, re-record, submit. You get the
+   transcript and delivery metrics in about a second, the score in about 7 seconds, and
+   written feedback streams in after that (timings on an RTX 5060 Ti with `qwen2.5:7b`).
+4. **Try again** as often as you like; each retry is compared with your previous attempt.
+5. **End session & summarise** for recurring strengths and weaknesses and your top
+   priorities, then **Export PDF** for a report of your best attempts.
+
+## How the evaluation works
+
+Each answer is scored in two LLM calls: (1) rubric coverage and a 1-5 score, (2) written
+feedback, streamed to the page as it's generated. A 7B model makes mistakes, so Python
+checks its output: quotes are verified against the transcript (claims backed by words you
+never said don't count), the score is kept consistent with the rubric coverage, and
+sentences in the example answer that introduce names or numbers absent from your CV and
+transcript are removed. Delivery metrics (pace, filler words, pauses over 2 s) are measured
+from the word timestamps, not judged by the LLM. Prompts live in `backend/app/prompts/`.
+
+## Evaluator test set
+
+`backend/evals/samples.json` holds sample answers (strong, weak, off-topic, empty) with
+expected score bands. Run them against your configured model to check score consistency,
+or to compare models and settings:
+
+```
+cd backend
+.venv/Scripts/python -m evals.run_evals            # Windows; 3 runs per sample
+.venv/bin/python -m evals.run_evals --feedback     # macOS/Linux; also time call 2
+.venv/bin/python -m evals.run_evals --model llama3.1:8b --runs 5
+```
+
+Each run prints the scores per sample, how often they fell in the expected band, the spread
+across runs and the call timings, and saves a JSON report to `backend/evals/results/`.
+Reference result for `qwen2.5:7b` (RTX 5060 Ti): 21/21 runs in band, 6 of 7 samples scored
+identically on every run, scoring about 2-4.5 s per answer.
+
+## Latency logging
+
+Every attempt logs one line with the duration of each step, for example:
+
+```
+Attempt 42 [complete] timings | upload 4ms | queue 2ms | transcription 770ms | metrics 0ms |
+llm_score 5725ms | llm_feedback 6331ms | score_ready 7272ms | first_feedback 10666ms | total 13960ms |
+whisper large-v3-turbo cuda/float16 | llm qwen2.5:7b
+```
+
+The same numbers are stored on the attempt and shown under "Processing time" on the
+feedback screen, so hardware setups can be compared.
+
 ## Configuration (`.env`)
 
 | Variable | Default | Notes |
@@ -121,8 +175,11 @@ stop both.
 
 ## Privacy
 
-All data stays in `backend/data/` (SQLite database and uploads). CV contents are never
-logged. Sessions older than `AUDIO_RETENTION_DAYS` are deleted automatically.
+All data stays in `backend/data/` (SQLite database and uploads). CV contents and
+transcripts are never logged. Sessions older than `AUDIO_RETENTION_DAYS` (CV file, audio,
+transcripts, feedback) are deleted automatically, at startup and every 6 hours, along with
+any upload files no longer referenced by the database. Delete `backend/data/` to remove
+everything immediately.
 
 ## Tests
 

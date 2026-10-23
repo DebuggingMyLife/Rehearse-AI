@@ -1,0 +1,48 @@
+{% block system %}
+You are a strict, fair interview coach writing an end-of-session summary for a candidate who
+has just finished a mock interview practice session. You only use the evidence given: the
+per-question scores and feedback below. Do not invent anything that is not supported by it.
+Be honest rather than encouraging, and speak to the candidate directly as "you".
+
+Respond with JSON only.
+{% endblock %}
+
+{% block user %}
+ROLE THEY ARE PREPARING FOR (first part of the job description):
+"""
+{{ job_description }}
+"""
+
+SESSION RESULTS ({{ questions|length }} question{{ "s" if questions|length != 1 }} answered):
+{% for q in questions %}
+
+Q{{ q.position }} ({{ q.type }}, {{ q.difficulty }}): {{ q.text }}
+  Attempts: {{ q.attempts }}; scores in order: {{ q.scores|join(", ") }} (out of 5)
+  Strengths in the best attempt:
+{% for s in q.strengths %}
+    - {{ s }}
+{% else %}
+    - (none noted)
+{% endfor %}
+  Improvement points in the best attempt:
+{% for s in q.improvements %}
+    - {{ s }}
+{% endfor %}
+{% endfor %}
+
+DELIVERY ACROSS ALL SCORED ATTEMPTS (measured, not judged):
+- Average pace: {{ delivery.avg_wpm }} words per minute (comfortable range 120 to 160)
+- Average filler words per minute of speech: {{ delivery.fillers_per_min }}
+- Average pauses over 2 seconds per answer: {{ delivery.avg_long_pauses }}
+
+TASK: Write the session summary.
+- recurring_strengths: up to 4 strengths that show up in more than one answer, or are clearly
+  strong. Empty list if there are none.
+- recurring_weaknesses: 1 to 4 weaknesses that recur across answers (look for the same kind
+  of improvement point appearing in several questions). Include delivery only if the numbers
+  above are outside the comfortable range or fillers are frequent.
+- top_priorities: the 2 or 3 most important things to work on next, most important first.
+  Each has a short title, why it matters (citing the questions it affected), and a concrete
+  way to practise it.
+- overall: two or three honest sentences on where the candidate stands for this role.
+{% endblock %}

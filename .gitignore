@@ -225,3 +225,4 @@ node_modules/
 frontend/dist/
 *.db
 *.tsbuildinfo
+backend/evals/results/

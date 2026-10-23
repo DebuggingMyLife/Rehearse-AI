@@ -85,7 +85,7 @@ def consistent_score(score: int, covered: int, total: int) -> int:
     if covered > 0:
         low = max(low, 2)  # the anchors define 1 as "no rubric point covered"
     if covered == 0:
-        high = min(high, 2)
+        high = 1  # likewise: nothing covered is a 1, however fluent the answer
     return min(max(score, low), high)
 
 

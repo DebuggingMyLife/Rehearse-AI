@@ -49,6 +49,8 @@ class SessionOut(BaseModel):
     cv_text: str
     job_description: str
     questions: list[QuestionOut]
+    ended_at: datetime | None = None
+    summary: dict | None = None
 
     @classmethod
     def from_model(cls, s: InterviewSession) -> "SessionOut":
@@ -56,6 +58,7 @@ class SessionOut(BaseModel):
             id=s.id, created_at=as_utc(s.created_at), status=s.status, cv_filename=s.cv_filename,
             cv_text=s.cv_text, job_description=s.job_description,
             questions=[QuestionOut.from_model(q) for q in s.questions],
+            ended_at=as_utc(s.ended_at) if s.ended_at else None, summary=s.summary_json,
         )
 
 

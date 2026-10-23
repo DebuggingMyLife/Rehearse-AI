@@ -86,3 +86,19 @@ def feedback_model(behavioural: bool, has_previous: bool) -> type[BaseModel]:
         fields["previous_attempt_comparison"] = (AttemptComparison, ...)
     fields["example_stronger_answer"] = (str, Field(min_length=40))
     return create_model("Feedback", **fields)
+
+
+# --- Session summary -------------------------------------------------------------------------
+
+
+class Priority(BaseModel):
+    title: str
+    why: str
+    how_to_practise: str
+
+
+class SessionSummaryOut(BaseModel):
+    recurring_strengths: list[str] = Field(max_length=4)
+    recurring_weaknesses: list[str] = Field(min_length=1, max_length=4)
+    top_priorities: list[Priority] = Field(min_length=2, max_length=3)
+    overall: str

@@ -296,3 +296,24 @@ blockquote.example {
 .attempts details > summary::before { content: "▸"; color: var(--muted); margin-right: 6px; float: left; }
 .attempts details[open] > summary::before { content: "▾"; }
 .attempt-detail { margin-top: 12px; padding: 12px 0 4px 14px; border-left: 2px solid var(--border); }
+
+/* Summary */
+a.button {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  color: inherit;
+  text-decoration: none;
+  font-size: inherit;
+}
+a.button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.priorities li { margin-bottom: 6px; }
+.priorities li > div { margin-top: 2px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+ul.summary-questions { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.summary-questions li { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.summary-questions .score { padding: 6px 10px; min-width: 0; }
+.summary-questions .score-num { font-size: 1.4rem; }
+.summary-questions .score-label { display: none; }
