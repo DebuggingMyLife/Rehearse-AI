@@ -9,7 +9,7 @@ const TYPE_LABEL: Record<QuestionType, string> = {
   cv_specific: "CV-specific",
 };
 
-function QuestionCard({ q, isNew }: { q: Question; isNew: boolean }) {
+function QuestionCard({ q, isNew, sessionId }: { q: Question; isNew: boolean; sessionId: string }) {
   return (
     <li className={`question ${isNew ? "new" : ""}`}>
       <div className="q-num">{q.position}</div>
@@ -28,8 +28,8 @@ function QuestionCard({ q, isNew }: { q: Question; isNew: boolean }) {
           )}
         </div>
       </div>
-      <button disabled title="Recording arrives in milestone 3">
-        Answer
+      <button onClick={() => navigate(`/s/${sessionId}/q/${q.id}`)}>
+        {q.attempt_count > 0 ? "Try again" : "Answer"}
       </button>
     </li>
   );
@@ -146,7 +146,7 @@ export default function QuestionsPage({ sessionId }: { sessionId: string }) {
       ) : (
         <ul className="questions">
           {session.questions.map((q) => (
-            <QuestionCard key={q.id} q={q} isNew={newIds.has(q.id)} />
+            <QuestionCard key={q.id} q={q} isNew={newIds.has(q.id)} sessionId={sessionId} />
           ))}
         </ul>
       )}

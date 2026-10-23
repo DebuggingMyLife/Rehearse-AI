@@ -38,6 +38,13 @@ class AttemptStatus(str, enum.Enum):
     failed = "failed"
 
 
+# Attempts that count as "attempted" (and so reveal the rubric). Too-short or failed
+# attempts don't, so the user can't see the rubric by submitting silence.
+COUNTED_ATTEMPT_STATUSES = {
+    AttemptStatus.uploaded, AttemptStatus.transcribing, AttemptStatus.analysing, AttemptStatus.complete,
+}
+
+
 class InterviewSession(Base):
     __tablename__ = "sessions"
 
@@ -89,7 +96,7 @@ class Question(Base):
 
     @property
     def is_attempted(self) -> bool:
-        return any(a.status == AttemptStatus.complete for a in self.attempts)
+        return any(a.status in COUNTED_ATTEMPT_STATUSES for a in self.attempts)
 
 
 class Attempt(Base):

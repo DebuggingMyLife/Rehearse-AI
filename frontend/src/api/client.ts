@@ -49,6 +49,33 @@ export interface Session {
   questions: Question[];
 }
 
+export type AttemptStatus = "uploaded" | "transcribing" | "analysing" | "complete" | "too_short" | "failed";
+
+export interface Attempt {
+  id: number;
+  question_id: number;
+  attempt_number: number;
+  status: AttemptStatus;
+  audio_url: string | null;
+  audio_duration_s: number | null;
+  transcript: string | null;
+  wpm: number | null;
+  filler_count: number | null;
+  filler_breakdown: Record<string, number> | null;
+  long_pause_count: number | null;
+  score: number | null;
+  scoring: Record<string, unknown> | null;
+  feedback: Record<string, unknown> | null;
+  timings: Record<string, number | string>;
+  error: string | null;
+  created_at: string;
+}
+
+export interface QuestionDetail extends Question {
+  session_id: string;
+  attempts: Attempt[];
+}
+
 export interface GenerateRequest {
   count: number;
   type?: QuestionType | null;
@@ -112,4 +139,14 @@ export const api = {
 
   generateQuestions: (id: string, req: GenerateRequest) =>
     request<GenerateResponse>(`/api/sessions/${id}/questions`, json("POST", req)),
+
+  getQuestion: (questionId: number) => request<QuestionDetail>(`/api/questions/${questionId}`),
+
+  submitAttempt: (questionId: number, audio: Blob, durationS: number) => {
+    const form = new FormData();
+    const ext = audio.type.includes("mp4") ? "m4a" : audio.type.includes("ogg") ? "ogg" : "webm";
+    form.append("audio", audio, `answer.${ext}`);
+    form.append("duration_s", durationS.toFixed(2));
+    return request<Attempt>(`/api/questions/${questionId}/attempts`, { method: "POST", body: form });
+  },
 };

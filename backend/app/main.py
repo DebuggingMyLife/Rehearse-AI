@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from .config import get_settings
 from .db import init_db
 from . import worker
-from .routers import health, questions, sessions
+from .routers import attempts, health, questions, sessions
 from .services.llm import check_ollama
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -35,3 +35,4 @@ app = FastAPI(title="Retake", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(sessions.router)
 app.include_router(questions.router)
+app.include_router(attempts.router)

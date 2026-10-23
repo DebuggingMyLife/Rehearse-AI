@@ -140,3 +140,60 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .question { flex-wrap: wrap; }
   .question > button { margin-left: auto; }
 }
+
+:root { --rec: #d93025; --warn-bg: #fff4e0; --warn-fg: #7a4a00; }
+@media (prefers-color-scheme: dark) {
+  :root { --rec: #ff6b5e; --warn-bg: #3a2c12; --warn-fg: #f5cf8f; }
+}
+
+h3 { margin: 0; font-size: 1.05rem; }
+.center { text-align: center; }
+.banner.warn { background: var(--warn-bg); color: var(--warn-fg); }
+button.link { border: none; padding: 0; color: var(--accent); background: none; }
+
+.question-hero .q-hero-text { font-size: 1.25rem; line-height: 1.5; margin: 12px 0 0; }
+
+.recorder-top { display: flex; justify-content: flex-end; }
+button.record {
+  display: block;
+  margin: 8px auto 0;
+  font-size: 1.1rem;
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 2px solid var(--rec);
+  color: var(--rec);
+  font-weight: 700;
+}
+button.record:hover:not(:disabled) { background: var(--rec); color: #fff; }
+
+.recording-live {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas: "dot label timer stop" "level level level level";
+  align-items: center;
+  gap: 10px 12px;
+}
+.rec-dot {
+  grid-area: dot;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--rec);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+.rec-label { grid-area: label; font-weight: 700; color: var(--rec); }
+.rec-timer { grid-area: timer; font-variant-numeric: tabular-nums; font-size: 1.4rem; font-weight: 600; }
+.rec-timer.warn { color: var(--rec); }
+button.stop { grid-area: stop; font-weight: 700; padding: 8px 18px; }
+.level { grid-area: level; height: 6px; border-radius: 3px; background: var(--tag-bg); overflow: hidden; }
+.level-fill { height: 100%; background: var(--ok-fg); transition: width 80ms linear; }
+
+.playback { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.playback audio, .attempts audio { max-width: 100%; height: 36px; }
+.attempts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.attempts li { display: flex; flex-direction: column; gap: 4px; }
