@@ -90,6 +90,8 @@ def test_second_attempt_gets_previous_feedback(client, question_id, fake_llm):
     assert "Explain your own decisions" in feedback_call["user"]
     comp = a["feedback"]["previous_attempt_comparison"]
     assert comp["previous_score"] == 4 and comp["not_addressed"] == ["x"]
+    q = client.get(f"/api/questions/{question_id}").json()
+    assert q["scores"][-2:] == [4, 4]
 
 
 def test_scoring_failure_keeps_transcript_and_metrics(client, question_id, fake_llm):
@@ -163,3 +165,19 @@ def test_empty_strengths_fall_back_to_verified_coverage():
     ]}
     value = _verify_quotes("what_you_did_well", [], "I led the migration", scoring)
     assert value == [{"point": "Names the migration", "quote": "led the migration", "quote_verified": True}]
+
+
+# Real case: a weak, off-topic answer was told it had "now addressed" performance improvements.
+def test_comparison_cannot_claim_unaddressed_improvements():
+    from app.services.evaluation import _verify_quotes
+
+    scoring = {"rubric_coverage": [{"point": "Discussed the performance improvements", "evidence_quote": "",
+                                    "covered": False, "quote_verified": False}]}
+    transcript = "I think migrations are really important and teamwork matters a lot."
+    value = {"addressed": ["Discussed the performance improvements and how they were measured",
+                           "Talked about why teamwork matters during migrations"],
+             "not_addressed": ["Named the tools used"], "summary": "Improved."}
+    _verify_quotes("previous_attempt_comparison", value, transcript, scoring)
+    assert value["addressed"] == ["Talked about why teamwork matters during migrations"]
+    assert value["not_addressed"] == ["Named the tools used",
+                                      "Discussed the performance improvements and how they were measured"]

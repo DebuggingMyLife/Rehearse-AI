@@ -196,7 +196,7 @@ button.stop { grid-area: stop; font-weight: 700; padding: 8px 18px; }
 .playback { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .playback audio, .attempts audio { max-width: 100%; height: 36px; }
 .attempts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.attempts li { display: flex; flex-direction: column; gap: 4px; }
+.attempts > li { display: flex; flex-direction: column; gap: 4px; }
 
 .progress { list-style: none; display: flex; gap: 18px; padding: 0; margin: 0; flex-wrap: wrap; }
 .progress li.done { color: var(--ok-fg); }
@@ -270,3 +270,29 @@ blockquote.example {
   line-height: 1.55;
 }
 .transcript audio { margin-top: 10px; }
+
+/* Retries */
+.score-history { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.score-history ol { list-style: none; display: flex; align-items: center; gap: 6px; padding: 0; margin: 0; }
+.score-history li { display: flex; align-items: center; gap: 6px; }
+.arrow { color: var(--muted); }
+.chip {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--tag-bg);
+}
+.delta { font-weight: 700; font-size: 0.85rem; }
+.delta.up { color: var(--ok-fg); }
+.delta.down { color: var(--err-fg); }
+.delta.same { color: var(--muted); }
+.attempts details > summary { cursor: pointer; list-style: none; }
+.attempts details > summary::-webkit-details-marker { display: none; }
+.attempt-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.attempts details > summary::before { content: "▸"; color: var(--muted); margin-right: 6px; float: left; }
+.attempts details[open] > summary::before { content: "▾"; }
+.attempt-detail { margin-top: 12px; padding: 12px 0 4px 14px; border-left: 2px solid var(--border); }

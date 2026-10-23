@@ -22,6 +22,7 @@ class QuestionOut(BaseModel):
     status: Literal["not_attempted", "attempted"]
     attempt_count: int
     best_score: int | None
+    scores: list[int]  # scored attempts, oldest first
     # Only revealed once the question has a completed attempt.
     rubric: list[str] | None = None
     cv_evidence: list[str] | None = None
@@ -34,6 +35,7 @@ class QuestionOut(BaseModel):
             difficulty=q.difficulty,
             status="attempted" if attempted else "not_attempted",
             attempt_count=len(q.attempts), best_score=q.best_score,
+            scores=[a.score for a in q.attempts if a.score is not None],
             rubric=q.rubric if attempted else None,
             cv_evidence=q.cv_evidence if attempted else None,
         )

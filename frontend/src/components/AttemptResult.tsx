@@ -155,7 +155,7 @@ export default function AttemptResult({ live, audioUrl }: { live: LiveAttempt; a
       )}
 
       {(hasFeedback || (evaluating && live.scoring)) && (
-        <FeedbackSections feedback={live.feedback} streaming={!final} />
+        <FeedbackSections feedback={live.feedback} streaming={!final} currentScore={live.scoring?.score} />
       )}
 
       {live.metrics && (

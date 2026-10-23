@@ -1,4 +1,5 @@
 import type { Feedback, Scoring } from "../api/client";
+import { scoreDelta } from "./ScoreHistory";
 
 const SCORE_LABEL: Record<number, string> = {
   1: "Weak",
@@ -49,7 +50,15 @@ function Pending({ label }: { label: string }) {
   return <p className="muted small pending">{label}…</p>;
 }
 
-export function FeedbackSections({ feedback, streaming }: { feedback: Partial<Feedback>; streaming: boolean }) {
+export function FeedbackSections({
+  feedback,
+  streaming,
+  currentScore,
+}: {
+  feedback: Partial<Feedback>;
+  streaming: boolean;
+  currentScore?: number;
+}) {
   const f = feedback;
   return (
     <>
@@ -57,6 +66,13 @@ export function FeedbackSections({ feedback, streaming }: { feedback: Partial<Fe
         <section className="fb-section comparison">
           <h4>
             Compared with attempt {f.previous_attempt_comparison.previous_attempt_number ?? "before"}
+            {currentScore !== undefined && typeof f.previous_attempt_comparison.previous_score === "number" && (
+              <span className="small">
+                {" "}
+                · score {f.previous_attempt_comparison.previous_score} → {currentScore}{" "}
+                {scoreDelta(currentScore, f.previous_attempt_comparison.previous_score)}
+              </span>
+            )}
           </h4>
           <p>{f.previous_attempt_comparison.summary}</p>
           {f.previous_attempt_comparison.addressed.length > 0 && (

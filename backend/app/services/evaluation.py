@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 MAX_CV_CHARS = 8_000
 MAX_JD_CHARS = 3_000
 QUOTE_MIN_OVERLAP = 0.75
+ADDRESSED_MIN_OVERLAP = 0.4
 
 
 @dataclass
@@ -159,6 +160,17 @@ def _verify_quotes(field: str, value, transcript: str, scoring: dict | None = No
             # back to the verified covered points so the feedback agrees with the score.
             value.extend({"point": c["point"], "quote": c["evidence_quote"], "quote_verified": True}
                          for c in scoring["rubric_coverage"] if c["covered"] and c["quote_verified"])
+    if field == "previous_attempt_comparison" and isinstance(value, dict) and scoring:
+        # The model sometimes claims improvements the candidate never talked about. Keep an
+        # "addressed" item only if it shows up in this transcript or in a covered rubric point.
+        covered = [c["point"] for c in scoring["rubric_coverage"] if c["covered"]]
+        keep, moved = [], []
+        for item in value.get("addressed", []):
+            supported = overlap(item, transcript) >= ADDRESSED_MIN_OVERLAP or any(
+                overlap(item, point) >= 0.6 for point in covered)
+            (keep if supported else moved).append(item)
+        value["addressed"] = keep
+        value["not_addressed"] = list(value.get("not_addressed", [])) + moved
     if field == "structure_feedback" and isinstance(value, dict):
         for part in ("situation", "task", "action", "result"):
             p = value.get(part)
@@ -192,6 +204,8 @@ def write_feedback(
     _verify_quotes("what_you_did_well", data["what_you_did_well"], ctx.transcript, scoring)
     if data.get("structure_feedback"):
         _verify_quotes("structure_feedback", data["structure_feedback"], ctx.transcript)
+    if data.get("previous_attempt_comparison"):
+        _verify_quotes("previous_attempt_comparison", data["previous_attempt_comparison"], ctx.transcript, scoring)
     example, removed = remove_unsupported_sentences(
         data["example_stronger_answer"], f"{ctx.cv_text}\n{ctx.transcript}\n{ctx.question}")
     if removed:

@@ -38,6 +38,7 @@ export interface Question {
   status: "not_attempted" | "attempted";
   attempt_count: number;
   best_score: number | null;
+  scores: number[];
   rubric: string[] | null;
   cv_evidence: string[] | null;
 }

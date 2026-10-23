@@ -22,6 +22,7 @@ function QuestionCard({ q, isNew, sessionId }: { q: Question; isNew: boolean; se
             <span className="tag status-done">
               {q.attempt_count} attempt{q.attempt_count > 1 ? "s" : ""}
               {q.best_score !== null && ` · best ${q.best_score}/5`}
+              {q.scores.length > 1 && ` · ${q.scores.slice(-3).join(" → ")}`}
             </span>
           ) : (
             <span className="tag status-todo">Not attempted</span>

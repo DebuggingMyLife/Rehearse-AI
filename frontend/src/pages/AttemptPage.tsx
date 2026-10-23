@@ -8,6 +8,7 @@ import {
   type QuestionDetail,
 } from "../api/client";
 import AttemptResult, { liveFromAttempt, type LiveAttempt } from "../components/AttemptResult";
+import ScoreHistory, { scoreDelta } from "../components/ScoreHistory";
 import { navigate } from "../hooks/useHashRoute";
 import { recordingUnsupportedReason, useRecorder } from "../hooks/useRecorder";
 
@@ -72,21 +73,39 @@ function PreviousAttempts({ attempts }: { attempts: Attempt[] }) {
     <div className="card stack">
       <h3>Previous attempts</h3>
       <ul className="attempts">
-        {[...attempts].reverse().map((a) => (
-          <li key={a.id}>
-            <span className="muted small">
-              Attempt {a.attempt_number} · {a.audio_duration_s ? formatTime(a.audio_duration_s) : "?"} ·{" "}
-              {new Date(a.created_at).toLocaleString()}
-              {a.wpm !== null && ` · ${Math.round(a.wpm)} wpm · ${a.filler_count} fillers`}
-              {STATUS_LABEL[a.status] && ` · ${STATUS_LABEL[a.status]}`}
-            </span>
-            {a.audio_url ? (
-              <audio controls preload="none" src={a.audio_url} />
-            ) : (
-              <span className="muted small">Audio deleted</span>
-            )}
-          </li>
-        ))}
+        {[...attempts].reverse().map((a, i, list) => {
+          const prevScored = list.slice(i + 1).find((p) => p.score !== null);
+          return (
+            <li key={a.id}>
+              <details>
+                <summary>
+                  <span className="attempt-summary">
+                    {a.score !== null && (
+                      <span className={`chip score-${a.score}`}>
+                        {a.score}/5
+                      </span>
+                    )}
+                    {a.score !== null && scoreDelta(a.score, prevScored?.score)}
+                    <span>
+                      Attempt {a.attempt_number}
+                      <span className="muted small">
+                        {" "}
+                        · {a.audio_duration_s ? formatTime(a.audio_duration_s) : "?"} ·{" "}
+                        {new Date(a.created_at).toLocaleString()}
+                        {a.wpm !== null && ` · ${Math.round(a.wpm)} wpm · ${a.filler_count} fillers`}
+                        {STATUS_LABEL[a.status] && ` · ${STATUS_LABEL[a.status]}`}
+                      </span>
+                    </span>
+                  </span>
+                </summary>
+                <div className="attempt-detail">
+                  <AttemptResult live={liveFromAttempt(a, metricsOf(a))} audioUrl={a.audio_url} />
+                  {!a.audio_url && <span className="muted small">Audio deleted after the retention period.</span>}
+                </div>
+              </details>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -204,6 +223,7 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
           )}
         </div>
         <p className="q-hero-text">{question.text}</p>
+        <ScoreHistory attempts={question.attempts} />
       </div>
 
       <div className="card recorder">
