@@ -121,7 +121,7 @@ export default function LandingPage() {
         <h1 className="hero-title">
           Rehearse your next interview{" "}
           <span className="accent-line">
-            <span className="accent">out loud</span>.
+            <span className="accent">out loud</span>
           </span>
         </h1>
         <p className="hero-sub">

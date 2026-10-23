@@ -58,7 +58,6 @@ export default function SetupPage() {
         <button className="primary" type="submit" disabled={!ready}>
           {busy ? "Reading your CV…" : "Continue"}
         </button>
-        <span className="muted small">Everything stays on this computer.</span>
       </div>
     </form>
   );
