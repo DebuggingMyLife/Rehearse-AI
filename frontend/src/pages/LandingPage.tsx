@@ -1,3 +1,5 @@
+// Bundled (not loaded from a CDN) so the app keeps working offline.
+import "@fontsource/mrs-saint-delafield/latin-400.css";
 import { navigate } from "../hooks/useHashRoute";
 
 const STEPS = [
@@ -117,7 +119,10 @@ export default function LandingPage() {
           Runs entirely on your computer
         </span>
         <h1 className="hero-title">
-          Rehearse your next interview <span className="accent">out loud</span>.
+          Rehearse your next interview{" "}
+          <span className="accent-line">
+            <span className="accent">out loud</span>.
+          </span>
         </h1>
         <p className="hero-sub">
           RehearseAI asks the questions this role will ask you, listens to your spoken answers, and gives you

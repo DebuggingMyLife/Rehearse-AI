@@ -400,7 +400,21 @@ ul.summary-questions { list-style: none; padding: 0; display: flex; flex-directi
   letter-spacing: -0.03em;
   font-weight: 800;
 }
-.hero-title .accent { color: var(--accent); }
+/* Signature-style accent, after Formula 1's signature lettering: a thin, fast pen stroke.
+   Script faces have small x-heights, so it's set larger and nudged onto the baseline. */
+.hero-title .accent {
+  font-family: "Mrs Saint Delafield", cursive;
+  font-weight: 400;
+  font-size: 2.15em;
+  letter-spacing: 0;
+  line-height: 0.6;
+  color: var(--accent);
+  /* A hairline stroke gives the pen script enough weight beside the 800-weight headline. */
+  -webkit-text-stroke: 0.012em currentColor;
+  padding: 0 0.08em 0 0.02em;
+}
+/* Own line, with headroom for the script's tall ascenders. */
+.hero-title .accent-line { display: block; margin-top: 0.55em; line-height: 1; }
 .hero-sub { margin: 20px 0 0; max-width: 36em; font-size: 1.12rem; line-height: 1.6; color: var(--muted); }
 .hero-cta { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 32px; }
 button.cta {
