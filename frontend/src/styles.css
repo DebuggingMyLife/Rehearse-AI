@@ -571,3 +571,21 @@ button.cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px
   .closing.reveal:not(.in) .cta { opacity: 1; }
   .closing.reveal.in .cta { animation: none; }
 }
+
+/* Section items fade in one after another. The animation only fills *backwards*, and its end
+   keyframe leaves opacity unset, so afterwards each item returns to its own styling (e.g. the
+   dimmed / active how-it-works steps) without a jump. `translate` is used rather than
+   `transform` so it doesn't fight the steps' lift or hover effects. */
+.landing .reveal-group:not(.in) .reveal-item { opacity: 0; }
+.landing .reveal-group.in .reveal-item {
+  animation: reveal-item 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--reveal-i, 0) * 90ms);
+}
+@keyframes reveal-item {
+  from { opacity: 0; translate: 0 22px; }
+  to { translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .reveal-group:not(.in) .reveal-item { opacity: 1; }
+  .landing .reveal-group.in .reveal-item { animation: none; }
+}

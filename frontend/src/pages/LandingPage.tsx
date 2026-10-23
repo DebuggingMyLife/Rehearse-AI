@@ -1,6 +1,6 @@
 // Bundled (not loaded from a CDN) so the app keeps working offline.
 import "@fontsource/mrs-saint-delafield/latin-400.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { navigate } from "../hooks/useHashRoute";
 import { useReveal } from "../hooks/useReveal";
 
@@ -81,7 +81,8 @@ function Steps() {
       {STEPS.map((s, i) => (
         <li
           key={s.title}
-          className={i === current ? "active" : i < current ? "done" : ""}
+          className={`reveal-item ${i === current ? "active" : i < current ? "done" : ""}`}
+          style={revealOrder(i + 1)}
           onMouseEnter={() => setHeld(i)}
           aria-current={i === current ? "step" : undefined}
         >
@@ -93,6 +94,21 @@ function Steps() {
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Order within a revealing section: items fade in one after another. */
+function revealOrder(i: number) {
+  return { ["--reveal-i" as string]: i };
+}
+
+/** A landing section whose `.reveal-item` children fade and rise in when it scrolls into view. */
+function RevealSection({ children }: { children: ReactNode }) {
+  const { ref, shown } = useReveal<HTMLElement>(0.2);
+  return (
+    <section ref={ref} className={`landing-section reveal-group ${shown ? "in" : ""}`}>
+      {children}
+    </section>
   );
 }
 
@@ -199,16 +215,16 @@ export default function LandingPage() {
         <Preview />
       </section>
 
-      <section className="landing-section">
-        <h2 className="section-title">How it works</h2>
+      <RevealSection>
+        <h2 className="section-title reveal-item">How it works</h2>
         <Steps />
-      </section>
+      </RevealSection>
 
-      <section className="landing-section">
-        <h2 className="section-title">Practice that feels like the real thing</h2>
+      <RevealSection>
+        <h2 className="section-title reveal-item">Practice that feels like the real thing</h2>
         <div className="features">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="feature">
+          {FEATURES.map((f, i) => (
+            <div key={f.title} className="feature reveal-item" style={revealOrder(i + 1)}>
               <span className="feature-icon">
                 <Icon d={f.icon} />
               </span>
@@ -217,7 +233,7 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
+      </RevealSection>
 
       <Closing />
     </div>
