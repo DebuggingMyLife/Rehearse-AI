@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# RehearseAI
+backend/data/
+node_modules/
+frontend/dist/
+*.db
+*.tsbuildinfo
+backend/evals/results/

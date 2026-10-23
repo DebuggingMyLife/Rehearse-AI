@@ -1,0 +1,7 @@
+# macOS on Apple Silicon. Use WHISPER_BACKEND=mlx (recommended) or whisper-cpp.
+-r requirements.txt
+mlx-whisper==0.4.1
+pywhispercpp==1.3.0
+# decodes browser audio (webm/ogg/m4a) for both backends
+av>=12
+numpy

@@ -1,0 +1,22 @@
+QUESTION ({{ question_type }}, {{ difficulty }}):
+{{ question }}
+
+MARKING RUBRIC (points a strong answer covers):
+{% for point in rubric %}
+{{ loop.index }}. {{ point }}
+{% endfor %}
+
+CANDIDATE CV:
+"""
+{{ cv_text }}
+"""
+
+JOB DESCRIPTION:
+"""
+{{ job_description }}
+"""
+
+TRANSCRIPT OF THE CANDIDATE'S ANSWER:
+"""
+{{ transcript }}
+"""
