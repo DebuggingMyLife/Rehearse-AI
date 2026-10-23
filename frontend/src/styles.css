@@ -528,3 +528,46 @@ button.cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }
+
+/* How it works: step-by-step highlight */
+.steps.animated li {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.45s ease, transform 0.45s ease, box-shadow 0.45s ease, opacity 0.45s ease;
+  opacity: 0.6;
+}
+.steps.animated li.done { opacity: 0.8; }
+.steps.animated li.active {
+  opacity: 1;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -18px var(--accent);
+}
+.steps.animated .step-num { transition: background 0.45s ease, color 0.45s ease, transform 0.45s ease; }
+.steps.animated li:not(.active):not(.done) .step-num { background: var(--tag-bg); color: var(--muted); }
+.steps.animated li.active .step-num { transform: scale(1.12); }
+.step-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: step-bar var(--step-ms) linear forwards;
+}
+@keyframes step-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Fade in on scroll */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal.in { opacity: 1; transform: none; }
+/* The button follows a beat later. Uses `translate`, not `transform`, so it doesn't
+   interfere with the button's own hover lift. */
+.closing.reveal:not(.in) .cta { opacity: 0; }
+.closing.reveal.in .cta { animation: cta-in 0.5s ease 0.25s both; }
+@keyframes cta-in { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .closing.reveal:not(.in) .cta { opacity: 1; }
+  .closing.reveal.in .cta { animation: none; }
+}

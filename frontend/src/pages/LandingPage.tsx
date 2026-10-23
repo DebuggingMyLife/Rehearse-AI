@@ -1,6 +1,8 @@
 // Bundled (not loaded from a CDN) so the app keeps working offline.
 import "@fontsource/mrs-saint-delafield/latin-400.css";
+import { useEffect, useRef, useState } from "react";
 import { navigate } from "../hooks/useHashRoute";
+import { useReveal } from "../hooks/useReveal";
 
 const STEPS = [
   { title: "Add your CV and the job", body: "Upload a PDF or DOCX and paste the job description you're preparing for." },
@@ -41,6 +43,58 @@ const FEATURES = [
     body: "Finish with a summary of recurring strengths, weaknesses and your top priorities, and export it as a PDF.",
   },
 ];
+
+const STEP_MS = 2600;
+
+/** "How it works": highlights each step in turn (1 -> 4, then loops) once the section is on
+ *  screen. Hovering a step holds it; reduced-motion users get the static cards. */
+function Steps() {
+  const ref = useRef<HTMLOListElement>(null);
+  const [active, setActive] = useState(-1); // -1 until the section has been seen
+  const [held, setHeld] = useState<number | null>(null);
+  const [visible, setVisible] = useState(false);
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!visible || held !== null) return;
+    setActive((a) => (a < 0 ? 0 : a));
+    const id = window.setInterval(() => setActive((a) => (a + 1) % STEPS.length), STEP_MS);
+    return () => window.clearInterval(id);
+  }, [visible, held]);
+
+  const current = held ?? active;
+  return (
+    <ol
+      ref={ref}
+      className={`steps ${reducedMotion ? "" : "animated"}`}
+      style={{ ["--step-ms" as string]: `${STEP_MS}ms` }}
+      onMouseLeave={() => setHeld(null)}
+    >
+      {STEPS.map((s, i) => (
+        <li
+          key={s.title}
+          className={i === current ? "active" : i < current ? "done" : ""}
+          onMouseEnter={() => setHeld(i)}
+          aria-current={i === current ? "step" : undefined}
+        >
+          <span className="step-num">{i + 1}</span>
+          <h3>{s.title}</h3>
+          <p>{s.body}</p>
+          {/* Re-keyed each time this step becomes active so the bar restarts from empty. */}
+          {i === current && held === null && <span key={`bar-${active}`} className="step-bar" aria-hidden />}
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 function Icon({ d }: { d: string }) {
   return (
@@ -110,6 +164,16 @@ function Preview() {
   );
 }
 
+function Closing() {
+  const { ref, shown } = useReveal<HTMLElement>(0.3);
+  return (
+    <section ref={ref} className={`closing reveal ${shown ? "in" : ""}`}>
+      <h2>Walk into your next interview having already answered the questions.</h2>
+      <GetStarted label="Start practising" />
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div className="landing">
@@ -137,15 +201,7 @@ export default function LandingPage() {
 
       <section className="landing-section">
         <h2 className="section-title">How it works</h2>
-        <ol className="steps">
-          {STEPS.map((s, i) => (
-            <li key={s.title}>
-              <span className="step-num">{i + 1}</span>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </li>
-          ))}
-        </ol>
+        <Steps />
       </section>
 
       <section className="landing-section">
@@ -163,10 +219,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="closing">
-        <h2>Walk into your next interview having already answered the questions.</h2>
-        <GetStarted label="Start practising" />
-      </section>
+      <Closing />
     </div>
   );
 }
