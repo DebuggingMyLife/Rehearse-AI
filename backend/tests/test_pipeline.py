@@ -32,7 +32,10 @@ def run(client, question_id):
     return client.get(f"/api/attempts/{attempt_id}").json()
 
 
-def test_full_answer_gets_transcript_metrics_and_timings(client, question_id, fake_whisper):
+def test_full_answer_gets_transcript_metrics_and_timings(client, question_id, fake_whisper, monkeypatch):
+    from tests.test_evaluation import FakeLLM
+
+    monkeypatch.setattr(pipeline, "get_llm", lambda: FakeLLM())
     fake_whisper(LONG)
     a = run(client, question_id)
     assert a["status"] == "complete"

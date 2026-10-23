@@ -1,0 +1,23 @@
+{% block system %}
+{% include "_evaluator_system.j2" %}
+{% endblock %}
+
+{% block user %}
+{% include "_evaluation_context.j2" %}
+
+TASK: Score the answer against the rubric.
+
+1. rubric_coverage: one entry per rubric point, in the same order as the rubric.
+   - point: the rubric point, copied as written.
+   - evidence_quote: first, search the transcript for the words that address this point and
+     copy them exactly (at most about 25 words). Use "" if nothing in the transcript does.
+   - covered: true if the evidence_quote addresses the point with at least one concrete
+     statement, even briefly. False if the quote is empty or only names the topic with
+     nothing said about it.
+2. score: an integer from 1 to 5, consistent with the coverage:
+   1 = off-topic or no rubric point covered
+   2 = vague; covers only one or two points, little concrete detail
+   3 = covers about half the points with some concrete detail
+   4 = covers most points with concrete, specific detail
+   5 = covers nearly all points with specific detail, clear reasoning and stated results
+{% endblock %}

@@ -68,11 +68,63 @@ export interface Attempt {
   long_pause_count: number | null;
   delivery: Delivery | null;
   score: number | null;
-  scoring: Record<string, unknown> | null;
-  feedback: Record<string, unknown> | null;
+  scoring: Scoring | null;
+  feedback: Feedback | null;
   timings: Record<string, number | string>;
   error: string | null;
   created_at: string;
+}
+
+export interface RubricCoverage {
+  point: string;
+  evidence_quote: string;
+  covered: boolean;
+  quote_verified: boolean;
+  unverified_claim?: boolean;
+}
+
+export interface Scoring {
+  rubric_coverage: RubricCoverage[];
+  score: number;
+  model_score?: number;
+}
+
+export interface QuotedPoint {
+  point: string;
+  quote: string;
+  quote_verified?: boolean;
+}
+
+export interface StarPart {
+  quote: string;
+  comment: string;
+  quote_verified?: boolean;
+}
+
+export interface StarAssessment {
+  situation: StarPart;
+  task: StarPart;
+  action: StarPart;
+  result: StarPart;
+  overall: string;
+}
+
+export interface AttemptComparison {
+  addressed: string[];
+  not_addressed: string[];
+  summary: string;
+  previous_attempt_number?: number;
+  previous_score?: number | null;
+}
+
+export interface Feedback {
+  what_you_did_well: QuotedPoint[];
+  what_could_be_improved: string[];
+  missed_opportunities: string[];
+  structure_feedback: StarAssessment | null;
+  previous_attempt_comparison: AttemptComparison | null;
+  example_stronger_answer: string;
+  example_answer_sentences_removed?: number;
 }
 
 export interface Delivery {
@@ -93,6 +145,8 @@ export type AttemptEvent =
   | { type: "status"; status: AttemptStatus }
   | { type: "transcript"; transcript: string }
   | { type: "metrics"; metrics: AttemptMetrics }
+  | { type: "score"; scoring: Scoring }
+  | { type: "feedback_field"; field: keyof Feedback; value: unknown }
   | { type: "done"; attempt: Attempt };
 
 /** Subscribe to an attempt's progress (server-sent events). Returns a function that closes the stream. */
@@ -103,7 +157,7 @@ export function watchAttempt(
 ): () => void {
   const source = new EventSource(`/api/attempts/${attemptId}/events`);
   let finished = false;
-  for (const type of ["status", "transcript", "metrics", "done"]) {
+  for (const type of ["status", "transcript", "metrics", "score", "feedback_field", "done"]) {
     source.addEventListener(type, (msg) => {
       const event = JSON.parse((msg as MessageEvent).data) as AttemptEvent;
       if (event.type === "done") {

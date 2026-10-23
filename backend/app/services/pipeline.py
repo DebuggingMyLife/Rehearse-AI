@@ -1,4 +1,4 @@
-"""Attempt processing: transcribe -> check length -> delivery metrics -> (evaluation, M5).
+"""Attempt processing: transcribe -> check length -> delivery metrics -> two-call evaluation.
 
 Runs on the worker thread. Each step's duration is stored in Attempt.timings and logged
 in one line per attempt, so latency bottlenecks are visible and hardware can be compared.
@@ -15,13 +15,16 @@ from ..db import SessionLocal
 from ..events import bus
 from ..models import Attempt, AttemptStatus
 from ..schemas.api import AttemptOut, as_utc
+from .evaluation import build_context, previous_feedback, score_answer, write_feedback
+from .llm import LLMUnavailable, get_llm
 from .metrics import compute_metrics
 from .transcription import TranscriberUnavailable, get_transcriber
 
 log = logging.getLogger(__name__)
 
 MIN_WORDS = 10
-TIMING_KEYS = ["upload_ms", "queue_ms", "transcription_ms", "metrics_ms", "llm_score_ms", "llm_feedback_ms", "total_ms"]
+TIMING_KEYS = ["upload_ms", "queue_ms", "transcription_ms", "metrics_ms", "llm_score_ms", "llm_feedback_ms",
+               "score_ready_ms", "first_feedback_ms", "total_ms"]
 
 
 def _ms(start: float) -> int:
@@ -49,6 +52,47 @@ def log_timings(attempt: Attempt) -> None:
                        for k in TIMING_KEYS)
     log.info("Attempt %d [%s] timings | %s | whisper %s %s | llm %s", attempt.id, attempt.status.value, steps,
              t.get("whisper_model", "?"), t.get("whisper_device", "?"), t.get("llm_model", "?"))
+
+
+def _since_submit_ms(attempt: Attempt) -> int:
+    return int((datetime.now(timezone.utc) - as_utc(attempt.created_at)).total_seconds() * 1000)
+
+
+def _evaluate(db, attempt: Attempt, timings: dict) -> None:
+    """Call 1 (score) then call 2 (feedback, streamed field by field). An LLM failure leaves
+    the transcript and metrics intact and records a "feedback unavailable" message."""
+    llm = get_llm()
+    question = attempt.question
+    ctx = build_context(question, attempt.transcript or "")
+    label = str(attempt.id)
+
+    start = time.perf_counter()
+    try:
+        scoring, _ = score_answer(llm, ctx, label)
+    except LLMUnavailable as exc:
+        timings["llm_score_ms"] = _ms(start)
+        log.error("Attempt %d scoring unavailable: %s", attempt.id, exc)
+        attempt.error = "Feedback unavailable: the local model didn't return a valid evaluation. Please try again."
+        return
+    timings["llm_score_ms"] = _ms(start)
+    timings["score_ready_ms"] = _since_submit_ms(attempt)
+    attempt.scoring_json = scoring
+    attempt.score = scoring["score"]
+    db.commit()
+    bus.publish(attempt.id, {"type": "score", "scoring": scoring})
+
+    def on_field(name: str, value) -> None:
+        timings.setdefault("first_feedback_ms", _since_submit_ms(attempt))
+        bus.publish(attempt.id, {"type": "feedback_field", "field": name, "value": value})
+
+    start = time.perf_counter()
+    try:
+        feedback, _ = write_feedback(llm, ctx, scoring, previous_feedback(db, attempt), label, on_field)
+        attempt.feedback_json = feedback
+    except LLMUnavailable as exc:
+        log.error("Attempt %d feedback unavailable: %s", attempt.id, exc)
+        attempt.error = "Detailed feedback unavailable: the local model didn't return valid feedback. Please try again."
+    timings["llm_feedback_ms"] = _ms(start)
 
 
 def process_attempt(attempt_id: int) -> None:
@@ -100,7 +144,8 @@ def process_attempt(attempt_id: int) -> None:
                 "filler_breakdown": metrics.filler_breakdown, "long_pause_count": metrics.long_pause_count,
                 **metrics.delivery_json()}})
 
-            # Evaluation (two LLM calls) is added in milestone 5.
+            _set_status(db, attempt, AttemptStatus.analysing)
+            _evaluate(db, attempt, timings)
             attempt.status = AttemptStatus.complete
             _finish(db, attempt, timings)
         except Exception as exc:

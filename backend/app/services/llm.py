@@ -3,8 +3,10 @@
 Never log prompt or response contents here: they contain the candidate's CV.
 """
 
+import json
 import logging
 import time
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from functools import lru_cache
@@ -55,6 +57,58 @@ def inline_refs(schema: dict) -> dict:
     return resolve(schema)
 
 
+class TopLevelFieldStream:
+    """Incrementally scans streamed JSON object text and yields each top-level field as soon
+    as its value is complete, e.g. `"what_you_did_well": [...]` before the rest arrives."""
+
+    def __init__(self) -> None:
+        self.buf = ""
+        self.pos = 0
+        self.depth = 0
+        self.in_str = False
+        self.esc = False
+        self.seg_start: int | None = None
+
+    def feed(self, chunk: str) -> list[tuple[str, object]]:
+        self.buf += chunk
+        done: list[tuple[str, object]] = []
+        while self.pos < len(self.buf):
+            c = self.buf[self.pos]
+            if self.in_str:
+                if self.esc:
+                    self.esc = False
+                elif c == "\\":
+                    self.esc = True
+                elif c == '"':
+                    self.in_str = False
+            elif c == '"':
+                self.in_str = True
+            elif c in "{[":
+                self.depth += 1
+                if self.depth == 1:
+                    self.seg_start = self.pos + 1
+            elif c in "}]":
+                self.depth -= 1
+                if self.depth == 0:
+                    done += self._emit(self.pos)
+            elif c == "," and self.depth == 1:
+                done += self._emit(self.pos)
+                self.seg_start = self.pos + 1
+            self.pos += 1
+        return done
+
+    def _emit(self, end: int) -> list[tuple[str, object]]:
+        if self.seg_start is None:
+            return []
+        segment = self.buf[self.seg_start:end].strip()
+        if not segment:
+            return []
+        try:
+            return list(json.loads("{" + segment + "}").items())
+        except ValueError:
+            return []
+
+
 class OllamaClient:
     def __init__(self, settings: Settings, http: httpx.Client | None = None):
         self.settings = settings
@@ -70,24 +124,48 @@ class OllamaClient:
                 label, kind, tokens, int(CTX_WARN_RATIO * 100), limit,
             )
 
-    def _chat(self, messages: list[dict], schema: dict, temperature: float, num_predict: int) -> dict:
-        resp = self.http.post(
-            f"{self.host}/api/chat",
-            json={
-                "model": self.settings.llm_model,
-                "messages": messages,
-                "format": schema,
-                "stream": False,
-                "keep_alive": self.settings.llm_keep_alive,
-                "options": {
-                    "num_ctx": self.settings.llm_num_ctx,
-                    "temperature": temperature,
-                    "num_predict": num_predict,
-                },
+    def _payload(self, messages: list[dict], schema: dict, temperature: float, num_predict: int, stream: bool) -> dict:
+        return {
+            "model": self.settings.llm_model,
+            "messages": messages,
+            "format": schema,
+            "stream": stream,
+            "keep_alive": self.settings.llm_keep_alive,
+            "options": {
+                "num_ctx": self.settings.llm_num_ctx,
+                "temperature": temperature,
+                "num_predict": num_predict,
             },
-        )
+        }
+
+    def _chat(self, messages: list[dict], schema: dict, temperature: float, num_predict: int) -> dict:
+        resp = self.http.post(f"{self.host}/api/chat",
+                              json=self._payload(messages, schema, temperature, num_predict, False))
         resp.raise_for_status()
         return resp.json()
+
+    def _chat_stream(self, messages: list[dict], schema: dict, temperature: float, num_predict: int,
+                     on_field: Callable[[str, object], None]) -> dict:
+        """Streaming variant: calls on_field(name, value) as each top-level field completes.
+        Returns a body shaped like the non-streaming response."""
+        parser = TopLevelFieldStream()
+        content: list[str] = []
+        final: dict = {}
+        with self.http.stream("POST", f"{self.host}/api/chat",
+                              json=self._payload(messages, schema, temperature, num_predict, True)) as resp:
+            resp.raise_for_status()
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                part = json.loads(line)
+                piece = part.get("message", {}).get("content", "")
+                if piece:
+                    content.append(piece)
+                    for name, value in parser.feed(piece):
+                        on_field(name, value)
+                if part.get("done"):
+                    final = part
+        return {**final, "message": {"content": "".join(content)}}
 
     def chat_json(
         self,
@@ -98,11 +176,15 @@ class OllamaClient:
         label: str,
         temperature: float | None = None,
         num_predict: int = 2048,
+        on_field: Callable[[str, object], None] | None = None,
     ) -> LLMResult[T]:
         """Call Ollama with `model`'s JSON schema as the output format and validate the reply.
 
         On invalid output, retries once with the validation error appended. Raises
         LLMUnavailable if the second attempt also fails or Ollama is unreachable.
+        With `on_field`, the first attempt streams and reports each top-level field as it
+        completes; the retry (if needed) is not streamed, and callers should treat the
+        returned data as authoritative over anything streamed.
         """
         temperature = self.settings.llm_temperature if temperature is None else temperature
         schema = inline_refs(model.model_json_schema())
@@ -116,7 +198,10 @@ class OllamaClient:
         last_error = ""
         for attempt in (1, 2):
             try:
-                body = self._chat(messages, schema, temperature, num_predict)
+                if on_field is not None and attempt == 1:
+                    body = self._chat_stream(messages, schema, temperature, num_predict, on_field)
+                else:
+                    body = self._chat(messages, schema, temperature, num_predict)
             except httpx.HTTPError as exc:
                 log.error("[%s] Ollama request failed: %s", label, type(exc).__name__)
                 raise LLMUnavailable(f"Could not reach the LLM ({type(exc).__name__}).") from exc

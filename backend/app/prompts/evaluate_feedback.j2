@@ -1,0 +1,53 @@
+{% block system %}
+{% include "_evaluator_system.j2" %}
+{% endblock %}
+
+{% block user %}
+{% include "_evaluation_context.j2" %}
+
+SCORING RESULT (already decided; stay consistent with it):
+Score: {{ score }}/5
+{% for c in coverage %}
+- [{{ "covered" if c.covered else "NOT covered" }}] {{ c.point }}
+{% endfor %}
+
+{% if cv_evidence %}
+CV experiences that were relevant to this question:
+{% for e in cv_evidence %}
+- {{ e }}
+{% endfor %}
+
+{% endif %}
+{% if previous %}
+PREVIOUS ATTEMPT AT THIS QUESTION (score {{ previous.score }}/5). Improvement points given then:
+{% for p in previous.improvements %}
+- {{ p }}
+{% endfor %}
+
+{% endif %}
+TASK: Write feedback on this answer.
+
+- what_you_did_well: up to 4 genuine strengths. Each has a short point and the exact quote
+  from the transcript that shows it. If the answer has no real strengths, return an empty list.
+- what_could_be_improved: 1 to 4 specific, actionable points, starting with the most
+  important. Name what was missing or weak and what to say instead. Base them on the rubric
+  points that were NOT covered.
+- missed_opportunities: up to 3 experiences from the CANDIDATE CV that would have
+  strengthened this answer but were not mentioned. Name each one as it appears on the CV.
+  Return an empty list if the candidate already used the relevant CV experience.
+{% if behavioural %}
+- structure_feedback: assess the answer's STAR structure. For each of situation, task,
+  action and result: quote = the candidate's exact words for that part ("" if missing);
+  comment = one sentence on that specific part: what worked or what was missing.
+  overall: one sentence on how well the structure worked.
+{% endif %}
+{% if previous %}
+- previous_attempt_comparison: compare with the previous attempt's improvement points.
+  addressed: points from that list this answer now handles. not_addressed: points still
+  missing. summary: one honest sentence on whether this attempt improved.
+{% endif %}
+- example_stronger_answer: a short model answer (80 to 150 words) in the candidate's own
+  voice, first person, that covers the rubric. Use only facts that appear in the CANDIDATE CV
+  or the transcript. Where they lack a detail, keep it general rather than inventing numbers,
+  names or projects.
+{% endblock %}

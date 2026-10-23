@@ -13,6 +13,7 @@ from .. import prompts
 from ..models import Difficulty, InterviewSession, Question, QuestionType
 from ..schemas.llm import GeneratedQuestion, QuestionBatch
 from .llm import OllamaClient
+from .text import content_words, norm, overlap
 
 log = logging.getLogger(__name__)
 
@@ -162,40 +163,16 @@ def plan_slots(
     return slots
 
 
-def _norm(text: str) -> str:
-    return re.sub(r"[^a-z0-9 ]+", "", text.lower()).strip()
-
-
-STOPWORDS = frozenset(
-    "a an and the of to in on for with by at from as is are was were be been it its this that "
-    "their your my our i we you they he she them me using used use via "
-    # question scaffolding, so "Tell me about..." vs "Describe..." doesn't hide a duplicate
-    "what how why when where which who did do does can could would should will have has had "
-    "tell describe explain walk through give example time situation about any some".split()
-)
 EVIDENCE_MIN_OVERLAP = 0.6
 
 
-def _stem(word: str) -> str:
-    """Crude stemmer: challenges/challenge -> challeng, faced/face -> fac."""
-    for suffix in ("ing", "ed", "s"):
-        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
-            word = word[: -len(suffix)]
-            break
-    return word[:-1] if word.endswith("e") and len(word) > 3 else word
-
-
-def _content_words(text: str) -> set[str]:
-    return {_stem(w) for w in _norm(text).split() if w not in STOPWORDS and len(w) > 1}
-
-
 def is_duplicate(candidate: str, others: list[str]) -> bool:
-    c = _norm(candidate)
-    c_words = _content_words(candidate)
+    c = norm(candidate)
+    c_words = content_words(candidate)
     for other in others:
-        if SequenceMatcher(None, c, _norm(other)).ratio() >= DUPLICATE_RATIO:
+        if SequenceMatcher(None, c, norm(other)).ratio() >= DUPLICATE_RATIO:
             return True
-        o_words = _content_words(other)
+        o_words = content_words(other)
         smaller = min(len(c_words), len(o_words))
         if smaller >= MIN_WORDS_FOR_OVERLAP and len(c_words & o_words) / smaller >= DUPLICATE_OVERLAP:
             return True
@@ -205,11 +182,7 @@ def is_duplicate(candidate: str, others: list[str]) -> bool:
 def grounded_in_cv(evidence: str, cv_text: str) -> bool:
     """True if most of the evidence's content words appear in the CV (guards against
     the model inventing experience or copying from the job description)."""
-    words = _content_words(evidence)
-    if not words:
-        return False
-    cv_words = _content_words(cv_text)
-    return len(words & cv_words) / len(words) >= EVIDENCE_MIN_OVERLAP
+    return overlap(evidence, cv_text) >= EVIDENCE_MIN_OVERLAP
 
 
 def _truncate(text: str, limit: int, what: str) -> str:

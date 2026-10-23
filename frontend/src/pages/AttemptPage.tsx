@@ -7,7 +7,7 @@ import {
   type AttemptMetrics,
   type QuestionDetail,
 } from "../api/client";
-import AttemptResult, { type LiveAttempt } from "../components/AttemptResult";
+import AttemptResult, { liveFromAttempt, type LiveAttempt } from "../components/AttemptResult";
 import { navigate } from "../hooks/useHashRoute";
 import { recordingUnsupportedReason, useRecorder } from "../hooks/useRecorder";
 
@@ -130,7 +130,15 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
     try {
       const attempt = await api.submitAttempt(questionId, rec.recording.blob, rec.recording.durationS);
       setSubmitted(attempt);
-      setLive({ status: attempt.status, transcript: null, metrics: null, final: null, connectionLost: false });
+      setLive({
+        status: attempt.status,
+        transcript: null,
+        metrics: null,
+        scoring: null,
+        feedback: {},
+        final: null,
+        connectionLost: false,
+      });
       closeStream.current = watchAttempt(attempt.id, onEvent, () =>
         setLive((l) => (l ? { ...l, connectionLost: true } : l)),
       );
@@ -151,14 +159,13 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
           return { ...l, transcript: e.transcript };
         case "metrics":
           return { ...l, metrics: e.metrics };
+        case "score":
+          return { ...l, scoring: e.scoring };
+        case "feedback_field":
+          return { ...l, feedback: { ...l.feedback, [e.field]: e.value } };
         case "done":
-          return {
-            ...l,
-            status: e.attempt.status,
-            final: e.attempt,
-            transcript: e.attempt.transcript,
-            metrics: metricsOf(e.attempt),
-          };
+          // The final, validated result replaces anything streamed.
+          return liveFromAttempt(e.attempt, metricsOf(e.attempt));
       }
     });
     if (e.type === "done") api.getQuestion(questionId).then(setQuestion).catch(() => {});

@@ -1,32 +1,55 @@
-import type { Attempt, AttemptMetrics, AttemptStatus } from "../api/client";
+import type { Attempt, AttemptMetrics, AttemptStatus, Feedback, Scoring } from "../api/client";
+import { FeedbackSections, RubricCoverageList, ScoreBadge } from "./FeedbackView";
 
 export interface LiveAttempt {
   status: AttemptStatus;
   transcript: string | null;
   metrics: AttemptMetrics | null;
+  scoring: Scoring | null;
+  feedback: Partial<Feedback>;
   final: Attempt | null;
   connectionLost: boolean;
+}
+
+export function liveFromAttempt(a: Attempt, metrics: AttemptMetrics | null): LiveAttempt {
+  return {
+    status: a.status,
+    transcript: a.transcript,
+    metrics,
+    scoring: a.scoring,
+    feedback: a.feedback ?? {},
+    final: a,
+    connectionLost: false,
+  };
 }
 
 // Typical conversational interview pace. Outside this range is worth a gentle note.
 const WPM_LOW = 110;
 const WPM_HIGH = 170;
 
-const STEPS: { status: AttemptStatus; label: string }[] = [
-  { status: "uploaded", label: "Uploaded" },
-  { status: "transcribing", label: "Transcribing" },
-  { status: "analysing", label: "Analysing" },
+type Step = { key: string; label: string };
+const STEPS: Step[] = [
+  { key: "upload", label: "Uploaded" },
+  { key: "transcribe", label: "Transcribing" },
+  { key: "score", label: "Scoring" },
+  { key: "feedback", label: "Writing feedback" },
 ];
-const ORDER: AttemptStatus[] = ["uploaded", "transcribing", "analysing", "complete"];
 
-function Progress({ status }: { status: AttemptStatus }) {
-  const current = ORDER.indexOf(status);
+function currentStep(live: LiveAttempt): number {
+  if (live.status === "uploaded") return 0;
+  if (live.status === "transcribing") return 1;
+  if (!live.scoring) return 2;
+  return 3;
+}
+
+function Progress({ live }: { live: LiveAttempt }) {
+  const current = currentStep(live);
   return (
-    <ol className="progress" aria-label="Progress">
+    <ol className="progress" aria-label="Progress" aria-live="polite">
       {STEPS.map((step, i) => {
         const state = current > i ? "done" : current === i ? "active" : "todo";
         return (
-          <li key={step.status} className={state}>
+          <li key={step.key} className={state}>
             {state === "done" ? "✓ " : ""}
             {step.label}
             {state === "active" && i > 0 ? "…" : ""}
@@ -72,19 +95,28 @@ export function Metrics({ metrics }: { metrics: AttemptMetrics }) {
   );
 }
 
+const TIMING_ROWS: [string, string][] = [
+  ["upload_ms", "Upload"],
+  ["queue_ms", "Queue"],
+  ["transcription_ms", "Transcription"],
+  ["metrics_ms", "Metrics"],
+  ["llm_score_ms", "LLM call 1 (score)"],
+  ["llm_feedback_ms", "LLM call 2 (feedback)"],
+  ["score_ready_ms", "Submit → score"],
+  ["first_feedback_ms", "Submit → first feedback"],
+  ["total_ms", "Submit → done"],
+];
+
 function Timings({ timings }: { timings: Attempt["timings"] }) {
-  const rows = ["upload_ms", "queue_ms", "transcription_ms", "metrics_ms", "llm_score_ms", "llm_feedback_ms", "total_ms"]
-    .filter((k) => typeof timings[k] === "number")
-    .map((k) => [k.replace(/_ms$/, "").replace("_", " "), `${((timings[k] as number) / 1000).toFixed(2)} s`]);
   return (
     <details className="timings">
       <summary className="muted small">Processing time</summary>
       <table>
         <tbody>
-          {rows.map(([k, v]) => (
+          {TIMING_ROWS.filter(([k]) => typeof timings[k] === "number").map(([k, label]) => (
             <tr key={k}>
-              <td>{k}</td>
-              <td>{v}</td>
+              <td>{label}</td>
+              <td>{((timings[k] as number) / 1000).toFixed(2)} s</td>
             </tr>
           ))}
         </tbody>
@@ -99,26 +131,46 @@ function Timings({ timings }: { timings: Attempt["timings"] }) {
 
 export default function AttemptResult({ live, audioUrl }: { live: LiveAttempt; audioUrl: string | null }) {
   const final = live.final;
-  const status = final?.status ?? live.status;
 
   if (final?.status === "too_short" || final?.status === "failed") {
     return <div className={`banner ${final.status === "failed" ? "error" : "warn"}`}>{final.error}</div>;
   }
 
+  const evaluating = !final && (live.status === "analysing" || live.scoring !== null);
+  const hasFeedback = Object.keys(live.feedback).length > 0;
+
   return (
     <div className="stack">
-      {!final && <Progress status={status} />}
+      {!final && <Progress live={live} />}
       {live.connectionLost && !final && (
         <div className="banner warn">Lost connection to the server. Refresh to see the result.</div>
       )}
-      {live.metrics && <Metrics metrics={live.metrics} />}
-      {live.transcript !== null && (
-        <div className="transcript">
-          <div className="label">Transcript</div>
-          <p>{live.transcript}</p>
+      {final?.error && <div className="banner warn">{final.error}</div>}
+
+      {live.scoring && (
+        <div className="score-row">
+          <ScoreBadge score={live.scoring.score} />
+          <RubricCoverageList scoring={live.scoring} />
         </div>
       )}
-      {audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+
+      {(hasFeedback || (evaluating && live.scoring)) && (
+        <FeedbackSections feedback={live.feedback} streaming={!final} />
+      )}
+
+      {live.metrics && (
+        <section className="fb-section">
+          <h4>Delivery</h4>
+          <Metrics metrics={live.metrics} />
+        </section>
+      )}
+      {live.transcript !== null && (
+        <section className="fb-section transcript">
+          <h4>Transcript</h4>
+          <p>{live.transcript}</p>
+          {audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+        </section>
+      )}
       {final && <Timings timings={final.timings} />}
     </div>
   );
