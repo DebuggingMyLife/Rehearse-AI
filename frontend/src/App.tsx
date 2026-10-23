@@ -1,4 +1,5 @@
 import { StatusIndicators, StatusProblems, useHealth } from "./components/HealthBanner";
+import Logo from "./components/Logo";
 import ThemeToggle from "./components/ThemeToggle";
 import { useEffect } from "react";
 import { useHashRoute, type Route } from "./hooks/useHashRoute";
@@ -25,8 +26,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <a href="#/" className="brand">
-          <h1>RehearseAI</h1>
+        <a href="#/" className="brand" aria-label="RehearseAI home">
+          <h1>
+            <Logo />
+          </h1>
         </a>
         <div className="topbar-right">
           <StatusIndicators health={health} backendDown={backendDown} />

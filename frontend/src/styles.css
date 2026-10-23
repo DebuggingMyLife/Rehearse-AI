@@ -18,6 +18,9 @@
   --warn-fg: #7a4a00;
   --warn-dot: #d98a00;
   --rec: #d93025;
+  --logo-ink: #111a2e;
+  --logo-ai: #2b5bdb;
+  --logo-ring: var(--bg);
   color-scheme: light;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--fg);
@@ -46,6 +49,9 @@
     --warn-fg: #f5cf8f;
     --warn-dot: #f0b43c;
     --rec: #ff6b5e;
+    --logo-ink: #ffffff;
+    --logo-ai: #6f97f6;
+    --logo-ring: var(--bg);
     color-scheme: dark;
   }
 }
@@ -69,6 +75,9 @@
   --warn-fg: #f5cf8f;
   --warn-dot: #f0b43c;
   --rec: #ff6b5e;
+  --logo-ink: #ffffff;
+  --logo-ai: #6f97f6;
+  --logo-ring: var(--bg);
   color-scheme: dark;
 }
 
@@ -77,6 +86,19 @@ body { margin: 0; background: var(--bg); }
 .app { max-width: 880px; margin: 0 auto; padding: 24px 16px; }
 
 header h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.01em; }
+
+/* Logo */
+.logo { display: inline-flex; align-items: center; gap: 9px; }
+.logo-mark { display: block; flex: none; overflow: visible; }
+.logo-word {
+  font-family: "Figtree", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: -0.015em;
+  color: var(--logo-ink);
+  line-height: 1;
+}
+.logo-ai { color: var(--logo-ai); }
 
 .topbar {
   display: flex;
