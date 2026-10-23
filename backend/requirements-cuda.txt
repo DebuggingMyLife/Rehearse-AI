@@ -1,0 +1,9 @@
+# Windows / Linux (NVIDIA GPU or CPU). faster-whisper bundles CTranslate2.
+# CUDA runtime libraries (cuBLAS + cuDNN 9) come from the nvidia-* wheels below,
+# so no separate CUDA toolkit install is needed - only a recent NVIDIA driver.
+-r requirements.txt
+faster-whisper==1.1.1
+# faster-whisper imports requests, which newer huggingface_hub no longer pulls in
+requests>=2.32
+nvidia-cublas-cu12; platform_system != "Darwin"
+nvidia-cudnn-cu12==9.*; platform_system != "Darwin"
