@@ -197,3 +197,19 @@ button.stop { grid-area: stop; font-weight: 700; padding: 8px 18px; }
 .playback audio, .attempts audio { max-width: 100%; height: 36px; }
 .attempts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .attempts li { display: flex; flex-direction: column; gap: 4px; }
+
+.progress { list-style: none; display: flex; gap: 18px; padding: 0; margin: 0; flex-wrap: wrap; }
+.progress li.done { color: var(--ok-fg); }
+.progress li.active { font-weight: 700; }
+.progress li.todo { color: var(--muted); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.metric { border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.metric-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.metric-label { font-weight: 600; font-size: 0.9rem; }
+.metric-note { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+
+.transcript p { margin: 6px 0 0; line-height: 1.55; white-space: pre-wrap; }
+.timings table { font-size: 0.85rem; border-collapse: collapse; margin-top: 6px; }
+.timings td { padding: 2px 16px 2px 0; font-variant-numeric: tabular-nums; }
+.timings td:first-child { text-transform: capitalize; color: var(--muted); }

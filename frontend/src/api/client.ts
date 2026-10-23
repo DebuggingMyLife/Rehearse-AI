@@ -18,6 +18,9 @@ export interface Health {
     device: string;
     compute_type: string;
     loaded: boolean;
+    loading: boolean;
+    error: string | null;
+    warnings?: string[];
   };
   config: { llm_num_ctx: number; audio_retention_days: number };
 }
@@ -63,12 +66,58 @@ export interface Attempt {
   filler_count: number | null;
   filler_breakdown: Record<string, number> | null;
   long_pause_count: number | null;
+  delivery: Delivery | null;
   score: number | null;
   scoring: Record<string, unknown> | null;
   feedback: Record<string, unknown> | null;
   timings: Record<string, number | string>;
   error: string | null;
   created_at: string;
+}
+
+export interface Delivery {
+  word_count: number;
+  speaking_time_s: number;
+  longest_pause_s: number;
+  pauses: { at: number; duration: number }[];
+}
+
+export interface AttemptMetrics extends Delivery {
+  wpm: number;
+  filler_count: number;
+  filler_breakdown: Record<string, number>;
+  long_pause_count: number;
+}
+
+export type AttemptEvent =
+  | { type: "status"; status: AttemptStatus }
+  | { type: "transcript"; transcript: string }
+  | { type: "metrics"; metrics: AttemptMetrics }
+  | { type: "done"; attempt: Attempt };
+
+/** Subscribe to an attempt's progress (server-sent events). Returns a function that closes the stream. */
+export function watchAttempt(
+  attemptId: number,
+  onEvent: (e: AttemptEvent) => void,
+  onConnectionLost: () => void,
+): () => void {
+  const source = new EventSource(`/api/attempts/${attemptId}/events`);
+  let finished = false;
+  for (const type of ["status", "transcript", "metrics", "done"]) {
+    source.addEventListener(type, (msg) => {
+      const event = JSON.parse((msg as MessageEvent).data) as AttemptEvent;
+      if (event.type === "done") {
+        finished = true;
+        source.close();
+      }
+      onEvent(event);
+    });
+  }
+  source.onerror = () => {
+    // EventSource auto-reconnects; the server re-sends a snapshot. Only report if it gives up.
+    if (!finished && source.readyState === EventSource.CLOSED) onConnectionLost();
+  };
+  return () => source.close();
 }
 
 export interface QuestionDetail extends Question {

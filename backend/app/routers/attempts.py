@@ -1,15 +1,20 @@
+import asyncio
+import json
 import logging
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..db import get_db
+from ..db import SessionLocal, get_db
+from ..events import bus
 from ..models import Attempt, AttemptStatus, Question
 from ..schemas.api import AttemptOut, QuestionDetail
+from ..services.pipeline import process_attempt
+from ..worker import run_job
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["attempts"])
@@ -27,6 +32,17 @@ AUDIO_EXTENSIONS = {
     "audio/x-wav": ".wav",
 }
 MEDIA_TYPES = {ext: mt for mt, ext in reversed(AUDIO_EXTENSIONS.items())}
+TERMINAL_STATUSES = {AttemptStatus.complete, AttemptStatus.too_short, AttemptStatus.failed}
+SSE_KEEPALIVE_S = 15
+
+_background: set[asyncio.Task] = set()
+
+
+def schedule_processing(attempt_id: int) -> None:
+    """Queue the attempt on the worker; keep a reference so the task isn't GC'd."""
+    task = asyncio.get_running_loop().create_task(run_job(process_attempt, attempt_id))
+    _background.add(task)
+    task.add_done_callback(_background.discard)
 
 
 def _load_question(db: Session, question_id: int) -> Question:
@@ -87,12 +103,49 @@ async def create_attempt(
         attempt.id, question.id, attempt.attempt_number, duration_s, len(data) // 1024, mime,
         attempt.timings["upload_ms"],
     )
+    schedule_processing(attempt.id)
     return AttemptOut.from_model(attempt)
 
 
 @router.get("/attempts/{attempt_id}", response_model=AttemptOut)
 def get_attempt(attempt_id: int, db: Session = Depends(get_db)):
     return AttemptOut.from_model(_load_attempt(db, attempt_id))
+
+
+@router.get("/attempts/{attempt_id}/events")
+async def attempt_events(attempt_id: int, request: Request):
+    """Server-sent events: a snapshot of the attempt, then progress until `done`."""
+    queue = bus.subscribe(attempt_id)  # subscribe before reading state so no event is missed
+    try:
+        with SessionLocal() as db:
+            snapshot = AttemptOut.from_model(_load_attempt(db, attempt_id))
+    except HTTPException:
+        bus.unsubscribe(attempt_id, queue)
+        raise
+
+    def sse(event: str, data: dict) -> str:
+        return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+    async def stream():
+        try:
+            if snapshot.status in TERMINAL_STATUSES:
+                yield sse("done", {"type": "done", "attempt": snapshot.model_dump(mode="json")})
+                return
+            yield sse("status", {"type": "status", "status": snapshot.status.value})
+            while not await request.is_disconnected():
+                try:
+                    event = await asyncio.wait_for(queue.get(), SSE_KEEPALIVE_S)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+                yield sse(event["type"], event)
+                if event["type"] == "done":
+                    return
+        finally:
+            bus.unsubscribe(attempt_id, queue)
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.get("/attempts/{attempt_id}/audio")

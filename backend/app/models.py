@@ -117,6 +117,8 @@ class Attempt(Base):
     filler_count: Mapped[int | None] = mapped_column(Integer)
     filler_breakdown: Mapped[dict | None] = mapped_column(JSON)
     long_pause_count: Mapped[int | None] = mapped_column(Integer)
+    # {word_count, speaking_time_s, longest_pause_s, pauses: [{at, duration}]}
+    delivery: Mapped[dict | None] = mapped_column(JSON)
 
     score: Mapped[int | None] = mapped_column(Integer)  # copied from scoring_json
     scoring_json: Mapped[dict | None] = mapped_column(JSON)

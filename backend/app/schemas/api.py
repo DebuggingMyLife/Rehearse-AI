@@ -87,6 +87,7 @@ class AttemptOut(BaseModel):
     filler_count: int | None
     filler_breakdown: dict | None
     long_pause_count: int | None
+    delivery: dict | None
     score: int | None
     scoring: dict | None
     feedback: dict | None
@@ -101,7 +102,7 @@ class AttemptOut(BaseModel):
             audio_url=f"/api/attempts/{a.id}/audio" if a.audio_path else None,
             audio_duration_s=a.audio_duration_s, transcript=a.transcript, wpm=a.wpm,
             filler_count=a.filler_count, filler_breakdown=a.filler_breakdown,
-            long_pause_count=a.long_pause_count, score=a.score, scoring=a.scoring_json,
+            long_pause_count=a.long_pause_count, delivery=a.delivery, score=a.score, scoring=a.scoring_json,
             feedback=a.feedback_json, timings=a.timings or {}, error=a.error, created_at=as_utc(a.created_at),
         )
 

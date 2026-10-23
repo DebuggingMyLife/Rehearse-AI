@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     whisper_model_size: Literal["small", "medium", "large-v3-turbo"] = "large-v3-turbo"
     whisper_device: Literal["cuda", "cpu"] = "cuda"
     whisper_compute_type: Literal["float16", "int8"] = "float16"
+    whisper_language: str = "en"
 
     audio_retention_days: int = 7
 

@@ -26,6 +26,10 @@ def client():
     from app.config import get_settings
     from app.db import init_db
     from app.main import app
+    from app.routers import attempts
+
+    # Uploads normally queue transcription; tests drive the pipeline directly instead.
+    attempts.schedule_processing = lambda attempt_id: None
 
     settings = get_settings()
     settings.cv_dir.mkdir(parents=True, exist_ok=True)

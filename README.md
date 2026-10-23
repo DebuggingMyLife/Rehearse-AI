@@ -95,6 +95,12 @@ npm install
 ```
 
 This starts the backend on http://127.0.0.1:8000 and the UI on http://localhost:5173.
+
+**First start downloads the Whisper model** (about 1.6 GB for `large-v3-turbo`) from
+Hugging Face, so it needs internet once; after that everything runs offline. Whisper
+loads in the background, and the banner shows "loading…" until it's ready. On an NVIDIA
+GPU the very first transcription compiles CUDA kernels (about 25 s on a Blackwell card);
+the server does this during startup and the result is cached for later runs.
 Add `-Reload` / `--reload` for backend auto-reload during development. Press Ctrl+C to
 stop both.
 

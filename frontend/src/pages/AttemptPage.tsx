@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { api, type Attempt, type QuestionDetail } from "../api/client";
+import { useEffect, useRef, useState } from "react";
+import {
+  api,
+  watchAttempt,
+  type Attempt,
+  type AttemptEvent,
+  type AttemptMetrics,
+  type QuestionDetail,
+} from "../api/client";
+import AttemptResult, { type LiveAttempt } from "../components/AttemptResult";
 import { navigate } from "../hooks/useHashRoute";
 import { recordingUnsupportedReason, useRecorder } from "../hooks/useRecorder";
 
@@ -39,6 +47,25 @@ export function formatTime(s: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
+function metricsOf(a: Attempt): AttemptMetrics | null {
+  if (a.wpm === null || a.delivery === null) return null;
+  return {
+    ...a.delivery,
+    wpm: a.wpm,
+    filler_count: a.filler_count ?? 0,
+    filler_breakdown: a.filler_breakdown ?? {},
+    long_pause_count: a.long_pause_count ?? 0,
+  };
+}
+
+const STATUS_LABEL: Partial<Record<Attempt["status"], string>> = {
+  too_short: "too short",
+  failed: "failed",
+  uploaded: "processing",
+  transcribing: "processing",
+  analysing: "processing",
+};
+
 function PreviousAttempts({ attempts }: { attempts: Attempt[] }) {
   if (attempts.length === 0) return null;
   return (
@@ -50,6 +77,8 @@ function PreviousAttempts({ attempts }: { attempts: Attempt[] }) {
             <span className="muted small">
               Attempt {a.attempt_number} · {a.audio_duration_s ? formatTime(a.audio_duration_s) : "?"} ·{" "}
               {new Date(a.created_at).toLocaleString()}
+              {a.wpm !== null && ` · ${Math.round(a.wpm)} wpm · ${a.filler_count} fillers`}
+              {STATUS_LABEL[a.status] && ` · ${STATUS_LABEL[a.status]}`}
             </span>
             {a.audio_url ? (
               <audio controls preload="none" src={a.audio_url} />
@@ -70,12 +99,16 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<Attempt | null>(null);
+  const [live, setLive] = useState<LiveAttempt | null>(null);
+  const closeStream = useRef<(() => void) | null>(null);
   const rec = useRecorder({ maxSeconds: limit });
   const unsupported = recordingUnsupportedReason();
 
   useEffect(() => {
     api.getQuestion(questionId).then(setQuestion).catch((err) => setLoadError((err as Error).message));
   }, [questionId]);
+
+  useEffect(() => () => closeStream.current?.(), []);
 
   // Warn before leaving with an unsubmitted recording.
   const unsaved = rec.state === "recording" || (rec.state === "recorded" && !submitted);
@@ -97,7 +130,10 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
     try {
       const attempt = await api.submitAttempt(questionId, rec.recording.blob, rec.recording.durationS);
       setSubmitted(attempt);
-      setQuestion(await api.getQuestion(questionId));
+      setLive({ status: attempt.status, transcript: null, metrics: null, final: null, connectionLost: false });
+      closeStream.current = watchAttempt(attempt.id, onEvent, () =>
+        setLive((l) => (l ? { ...l, connectionLost: true } : l)),
+      );
     } catch (err) {
       setSubmitError((err as Error).message);
     } finally {
@@ -105,8 +141,33 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
     }
   }
 
+  function onEvent(e: AttemptEvent) {
+    setLive((l) => {
+      if (!l) return l;
+      switch (e.type) {
+        case "status":
+          return { ...l, status: e.status };
+        case "transcript":
+          return { ...l, transcript: e.transcript };
+        case "metrics":
+          return { ...l, metrics: e.metrics };
+        case "done":
+          return {
+            ...l,
+            status: e.attempt.status,
+            final: e.attempt,
+            transcript: e.attempt.transcript,
+            metrics: metricsOf(e.attempt),
+          };
+      }
+    });
+    if (e.type === "done") api.getQuestion(questionId).then(setQuestion).catch(() => {});
+  }
+
   function tryAgain() {
+    closeStream.current?.();
     setSubmitted(null);
+    setLive(null);
     rec.discard();
   }
 
@@ -129,7 +190,11 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
           <span className="tag">Question {question.position}</span>
           <span className="tag">{question.type === "cv_specific" ? "CV-specific" : question.type}</span>
           <span className="tag">{question.difficulty}</span>
-          {question.attempt_count > 0 && <span className="tag status-done">{question.attempt_count} previous</span>}
+          {question.attempt_count > 0 && (
+            <span className="tag status-done">
+              {question.attempt_count} attempt{question.attempt_count > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
         <p className="q-hero-text">{question.text}</p>
       </div>
@@ -137,16 +202,23 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
       <div className="card recorder">
         {unsupported ? (
           <div className="banner error">{unsupported}</div>
-        ) : submitted ? (
+        ) : submitted && live ? (
           <div className="stack">
-            <div className="banner ok">
-              Answer saved as attempt {submitted.attempt_number} ({formatTime(submitted.audio_duration_s ?? 0)}).
-              Transcription and feedback are added in milestones 4 and 5.
-            </div>
+            <h3>
+              Attempt {submitted.attempt_number}{" "}
+              <span className="muted small">({formatTime(submitted.audio_duration_s ?? 0)})</span>
+            </h3>
+            <AttemptResult live={live} audioUrl={submitted.audio_url} />
             <div className="actions">
-              <button className="primary" onClick={tryAgain}>
-                Try again
-              </button>
+              {live.final?.status === "too_short" ? (
+                <button className="primary" onClick={tryAgain}>
+                  Re-record
+                </button>
+              ) : (
+                <button className="primary" onClick={tryAgain} disabled={!live.final}>
+                  Try again
+                </button>
+              )}
               <button onClick={() => navigate(`/s/${sessionId}`)}>Next question</button>
             </div>
           </div>
@@ -227,7 +299,7 @@ export default function AttemptPage({ sessionId, questionId }: { sessionId: stri
         )}
       </div>
 
-      <PreviousAttempts attempts={question.attempts} />
+      <PreviousAttempts attempts={question.attempts.filter((a) => a.id !== submitted?.id)} />
     </div>
   );
 }

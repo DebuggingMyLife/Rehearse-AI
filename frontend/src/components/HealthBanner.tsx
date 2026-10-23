@@ -17,6 +17,14 @@ export default function HealthBanner() {
 
   useEffect(refresh, [refresh]);
 
+  // Whisper loads in the background after startup; re-check until it's ready.
+  const whisperLoading = health?.whisper.loading ?? false;
+  useEffect(() => {
+    if (!whisperLoading) return;
+    const id = window.setTimeout(refresh, 3000);
+    return () => window.clearTimeout(id);
+  }, [whisperLoading, health, refresh]);
+
   if (backendDown) {
     return (
       <div className="banner error">
@@ -28,12 +36,26 @@ export default function HealthBanner() {
   if (!health) return <div className="banner">Checking local services…</div>;
 
   const { ollama, whisper } = health;
+  const whisperProblem = whisper.error ?? null;
   return (
-    <div className={`banner ${ollama.ok ? "ok" : "error"}`}>
+    <>
+      <div className={`banner ${ollama.ok ? "ok" : "error"}`}>
       {ollama.ok ? (
         <span>
-          LLM <code>{ollama.model}</code> ready at {ollama.host} · Whisper{" "}
-          <code>{whisper.model_size}</code> on {whisper.device} ({whisper.backend})
+          LLM <code>{ollama.model}</code> ready at {ollama.host} · Whisper <code>{whisper.model_size}</code>{" "}
+          {whisper.loaded
+            ? `on ${whisper.device}/${whisper.compute_type} (${whisper.backend})`
+            : whisper.loading
+              ? "loading…"
+              : whisperProblem
+                ? "unavailable"
+                : "not loaded"}
+          {whisper.loading && (
+            <>
+              {" "}
+              <button onClick={refresh}>Re-check</button>
+            </>
+          )}
         </span>
       ) : (
         <span>
@@ -47,6 +69,13 @@ export default function HealthBanner() {
           <button onClick={refresh}>Re-check</button>
         </span>
       )}
-    </div>
+      </div>
+      {whisperProblem && <div className="banner error">{whisperProblem}</div>}
+      {whisper.warnings?.map((w) => (
+        <div key={w} className="banner warn">
+          {w}
+        </div>
+      ))}
+    </>
   );
 }

@@ -3,6 +3,7 @@ from starlette.concurrency import run_in_threadpool
 
 from ..config import get_settings
 from ..services.llm import check_ollama
+from ..services.transcription import transcriber_status
 
 router = APIRouter(prefix="/api", tags=["health"])
 
@@ -19,7 +20,8 @@ async def health() -> dict:
             "model_size": settings.whisper_model_size,
             "device": settings.whisper_device,
             "compute_type": settings.whisper_compute_type,
-            "loaded": False,  # model loading lands in milestone 4
+            # Actual device/compute after any CUDA->CPU fallback, plus load state
+            **transcriber_status(),
         },
         "config": {
             "llm_num_ctx": settings.llm_num_ctx,
