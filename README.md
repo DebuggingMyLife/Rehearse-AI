@@ -1,4 +1,4 @@
-# Retake
+# RehearseAI
 
 AI mock interview practice that runs fully locally. Upload your CV, paste a job
 description, answer generated questions out loud, and get feedback on each attempt.

@@ -1,4 +1,4 @@
-# Launch the Retake backend (FastAPI on :8000) and frontend (Vite on :5173).
+# Launch the RehearseAI backend (FastAPI on :8000) and frontend (Vite on :5173).
 # Usage: .\start.ps1 [-Reload]
 param([switch]$Reload)
 

@@ -20,7 +20,7 @@ from .services.transcription import load_transcriber
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
-log = logging.getLogger("retake")
+log = logging.getLogger("rehearseai")
 
 
 @asynccontextmanager
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
     worker.shutdown()
 
 
-app = FastAPI(title="Retake", lifespan=lifespan)
+app = FastAPI(title="RehearseAI", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(sessions.router)
 app.include_router(questions.router)

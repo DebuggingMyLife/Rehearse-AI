@@ -78,7 +78,7 @@ def build_session_pdf(session: InterviewSession) -> bytes:
     summary = session.summary_json or {}
     story: list = []
 
-    story.append(Paragraph("Retake: mock interview report", st["title"]))
+    story.append(Paragraph("RehearseAI: mock interview report", st["title"]))
     created = as_utc(session.created_at).astimezone()
     story.append(Paragraph(
         f"Session of {created:%d %B %Y} · CV: {_t(session.cv_filename)} · exported {datetime.now():%d %B %Y %H:%M}",
@@ -169,12 +169,12 @@ def build_session_pdf(session: InterviewSession) -> bytes:
         canvas.saveState()
         canvas.setFont("Vera", 7.5)
         canvas.setFillColor(MUTED)
-        canvas.drawString(18 * mm, 10 * mm, "Generated locally by Retake. Feedback is AI-generated; use your judgement.")
+        canvas.drawString(18 * mm, 10 * mm, "Generated locally by RehearseAI. Feedback is AI-generated; use your judgement.")
         canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, f"Page {doc.page}")
         canvas.restoreState()
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm,
-                            bottomMargin=18 * mm, title="Retake mock interview report", author="Retake")
+                            bottomMargin=18 * mm, title="RehearseAI mock interview report", author="RehearseAI")
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return buf.getvalue()

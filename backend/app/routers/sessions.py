@@ -110,6 +110,6 @@ async def export_pdf(session_id: str):
             return build_session_pdf(s), s.created_at.strftime("%Y-%m-%d")
 
     pdf, date = await run_in_threadpool(build)
-    name = re.sub(r"[^A-Za-z0-9-]", "", f"retake-session-{date}") + ".pdf"
+    name = re.sub(r"[^A-Za-z0-9-]", "", f"rehearseai-session-{date}") + ".pdf"
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the Retake backend (FastAPI on :8000) and frontend (Vite on :5173).
+# Launch the RehearseAI backend (FastAPI on :8000) and frontend (Vite on :5173).
 # Usage: ./start.sh [--reload]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"

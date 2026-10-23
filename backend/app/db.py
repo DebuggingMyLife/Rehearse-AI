@@ -10,6 +10,14 @@ log = logging.getLogger(__name__)
 settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 
+# The app was called "Retake" before; carry an existing database over to the new name.
+_old_db = settings.data_dir / "retake.db"
+if _old_db.exists() and not (settings.data_dir / "rehearseai.db").exists():
+    for suffix in ("", "-wal", "-shm"):
+        old = settings.data_dir / f"retake.db{suffix}"
+        if old.exists():
+            old.rename(settings.data_dir / f"rehearseai.db{suffix}")
+
 # check_same_thread=False: the worker thread writes attempt results.
 engine = create_engine(settings.db_url, connect_args={"check_same_thread": False})
 

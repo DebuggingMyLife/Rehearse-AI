@@ -229,7 +229,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, init);
   } catch {
-    throw new ApiError(0, "Can't reach the Retake backend. Is it running?");
+    throw new ApiError(0, "Can't reach the RehearseAI backend. Is it running?");
   }
   if (!res.ok) {
     let message = `Request failed (${res.status})`;

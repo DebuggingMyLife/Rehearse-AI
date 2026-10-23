@@ -4,7 +4,7 @@ import tempfile
 
 # Must run before any `app` import: point the DB and uploads at a throwaway directory
 # so tests never touch backend/data. Env vars take priority over .env.
-_TMP = tempfile.mkdtemp(prefix="retake-test-")
+_TMP = tempfile.mkdtemp(prefix="rehearseai-test-")
 os.environ["DATA_DIR"] = _TMP
 
 import pytest  # noqa: E402

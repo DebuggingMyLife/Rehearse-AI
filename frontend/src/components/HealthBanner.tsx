@@ -1,7 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type Health } from "../api/client";
 
-export default function HealthBanner() {
+type State = "ok" | "loading" | "error";
+
+function Indicator({ state, label, detail }: { state: State; label: string; detail: string }) {
+  const text = state === "ok" ? "ready" : state === "loading" ? "loading" : "unavailable";
+  return (
+    <span className={`status ${state}`} title={detail}>
+      <span className="status-dot" aria-hidden />
+      {label} {text}
+    </span>
+  );
+}
+
+/** Compact LLM / Whisper status for the header, plus error banners (with fix commands) when needed. */
+export function useHealth() {
   const [health, setHealth] = useState<Health | null>(null);
   const [backendDown, setBackendDown] = useState(false);
 
@@ -25,6 +38,39 @@ export default function HealthBanner() {
     return () => window.clearTimeout(id);
   }, [whisperLoading, health, refresh]);
 
+  return { health, backendDown, refresh };
+}
+
+export function StatusIndicators({ health, backendDown }: { health: Health | null; backendDown: boolean }) {
+  if (backendDown) return <Indicator state="error" label="Backend" detail="The backend isn't running." />;
+  if (!health) return null;
+  const { ollama, whisper } = health;
+  const whisperState: State = whisper.loaded ? "ok" : whisper.loading ? "loading" : "error";
+  return (
+    <div className="statuses">
+      <Indicator state={ollama.ok ? "ok" : "error"} label="LLM" detail={`${ollama.model} at ${ollama.host}`} />
+      <Indicator
+        state={whisperState}
+        label="Whisper AI"
+        detail={
+          whisper.loaded
+            ? `${whisper.model_size} on ${whisper.device}/${whisper.compute_type} (${whisper.backend})`
+            : `${whisper.model_size} (${whisper.backend})`
+        }
+      />
+    </div>
+  );
+}
+
+export function StatusProblems({
+  health,
+  backendDown,
+  refresh,
+}: {
+  health: Health | null;
+  backendDown: boolean;
+  refresh: () => void;
+}) {
   if (backendDown) {
     return (
       <div className="banner error">
@@ -33,32 +79,12 @@ export default function HealthBanner() {
       </div>
     );
   }
-  if (!health) return <div className="banner">Checking local services…</div>;
-
+  if (!health) return null;
   const { ollama, whisper } = health;
-  const whisperProblem = whisper.error ?? null;
   return (
     <>
-      <div className={`banner ${ollama.ok ? "ok" : "error"}`}>
-      {ollama.ok ? (
-        <span>
-          LLM <code>{ollama.model}</code> ready at {ollama.host} · Whisper <code>{whisper.model_size}</code>{" "}
-          {whisper.loaded
-            ? `on ${whisper.device}/${whisper.compute_type} (${whisper.backend})`
-            : whisper.loading
-              ? "loading…"
-              : whisperProblem
-                ? "unavailable"
-                : "not loaded"}
-          {whisper.loading && (
-            <>
-              {" "}
-              <button onClick={refresh}>Re-check</button>
-            </>
-          )}
-        </span>
-      ) : (
-        <span>
+      {!ollama.ok && (
+        <div className="banner error">
           <strong>{ollama.error}</strong>
           {ollama.fix && (
             <>
@@ -67,10 +93,9 @@ export default function HealthBanner() {
             </>
           )}{" "}
           <button onClick={refresh}>Re-check</button>
-        </span>
+        </div>
       )}
-      </div>
-      {whisperProblem && <div className="banner error">{whisperProblem}</div>}
+      {whisper.error && <div className="banner error">{whisper.error}</div>}
       {whisper.warnings?.map((w) => (
         <div key={w} className="banner warn">
           {w}

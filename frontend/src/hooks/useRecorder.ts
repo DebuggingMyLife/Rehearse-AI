@@ -15,7 +15,7 @@ const MIME_CANDIDATES = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;code
 /** Why recording can't work in this browser at all, or null if it can. */
 export function recordingUnsupportedReason(): string | null {
   if (!window.isSecureContext) {
-    return "Microphone access needs a secure page. Open Retake at http://localhost:5173 (not a network IP address).";
+    return "Microphone access needs a secure page. Open RehearseAI at http://localhost:5173 (not a network IP address).";
   }
   if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
     return "This browser can't record audio. Use a recent version of Chrome, Edge, Firefox or Safari.";

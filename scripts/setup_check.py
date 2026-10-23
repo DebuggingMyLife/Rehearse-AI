@@ -1,4 +1,4 @@
-"""Retake setup check: reports GPU, VRAM, RAM, Ollama status and recommended .env values.
+"""RehearseAI setup check: reports GPU, VRAM, RAM, Ollama status and recommended .env values.
 
 Uses only the standard library so it runs before `pip install`. If faster-whisper /
 ctranslate2 is already installed it also verifies that CUDA actually initialises.

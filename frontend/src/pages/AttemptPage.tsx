@@ -20,7 +20,7 @@ const TIME_LIMITS: { label: string; seconds: number | null }[] = [
   { label: "No limit", seconds: null },
 ];
 const DEFAULT_LIMIT = 120;
-const LIMIT_KEY = "retake.timeLimit";
+const LIMIT_KEY = "rehearseai.timeLimit";
 const WARN_REMAINING_S = 15;
 const SHORT_ANSWER_S = 5;
 

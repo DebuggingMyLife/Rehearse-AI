@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     @property
     def db_url(self) -> str:
-        return f"sqlite:///{(self.data_dir / 'retake.db').as_posix()}"
+        return f"sqlite:///{(self.data_dir / 'rehearseai.db').as_posix()}"
 
     @property
     def cv_dir(self) -> Path:

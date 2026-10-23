@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Retake
+# RehearseAI
 backend/data/
 node_modules/
 frontend/dist/

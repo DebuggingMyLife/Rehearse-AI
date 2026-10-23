@@ -1,4 +1,5 @@
-import HealthBanner from "./components/HealthBanner";
+import { StatusIndicators, StatusProblems, useHealth } from "./components/HealthBanner";
+import ThemeToggle from "./components/ThemeToggle";
 import { useHashRoute } from "./hooks/useHashRoute";
 import AttemptPage from "./pages/AttemptPage";
 import CvConfirmPage from "./pages/CvConfirmPage";
@@ -8,15 +9,19 @@ import SummaryPage from "./pages/SummaryPage";
 
 export default function App() {
   const route = useHashRoute();
+  const { health, backendDown, refresh } = useHealth();
   return (
     <div className="app">
-      <header>
+      <header className="topbar">
         <a href="#/" className="brand">
-          <h1>Retake</h1>
+          <h1>RehearseAI</h1>
         </a>
-        <p className="tagline">Local AI mock interviews</p>
+        <div className="topbar-right">
+          <StatusIndicators health={health} backendDown={backendDown} />
+          <ThemeToggle />
+        </div>
       </header>
-      <HealthBanner />
+      <StatusProblems health={health} backendDown={backendDown} refresh={refresh} />
       <main>
         {route.page === "setup" && <SetupPage />}
         {route.page === "cv" && <CvConfirmPage key={route.sessionId} sessionId={route.sessionId} />}
