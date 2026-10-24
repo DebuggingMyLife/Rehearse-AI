@@ -1,0 +1,30 @@
+# CV Builder - example configuration
+# Copy this file to `.env` and fill in real values locally.
+
+# LLM provider (used by the profile-building agent)
+# LLM_BACKEND selects which backend build_llm() (agent.py) constructs:
+#   groq  (default) - GROQ's cloud API, requires GROQ_API_KEY below.
+#   local            - a model running locally via Ollama's native API
+#                       (`ollama serve`, with the model already pulled) -
+#                       no API key or internet needed, no rate limit
+#                       either since it's your own hardware.
+LLM_BACKEND=groq
+
+GROQ_API_KEY=your-groq-api-key-here
+GROQ_MODEL=openai/gpt-oss-20b
+
+# Only read when LLM_BACKEND=local
+LOCAL_LLM_MODEL=gpt-oss:20b
+LOCAL_LLM_BASE_URL=http://localhost:11434
+LOCAL_LLM_NUM_CTX=16384
+
+
+# Ollama's default runtime context window (4096) is too small for this
+# project's own system prompts (~4k tokens on their own) and causes empty
+# completions no matter how high max_tokens is set - 16384 was confirmed
+# working locally. Raise it only if your GPU has the VRAM for it (a much
+# higher value crashed the local model process outright on the machine
+# this was built on); lower it if 16384 itself is too much for a smaller
+# GPU.
+
+
