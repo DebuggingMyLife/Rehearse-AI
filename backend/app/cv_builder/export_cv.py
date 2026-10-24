@@ -4,16 +4,21 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from cv_generator import CVGenerator
-from cv_pdf import render_cv_pdf
-from job_retrieval_tool import JobRetrievalTool
-from profile_model import Profile
+# Run as a script (python app/cv_builder/export_cv.py) or as a module (python -m
+# app.cv_builder.export_cv); either way the `app` package must be importable from backend/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from app.cv_builder.cv_generator import CVGenerator
+from app.cv_builder.cv_pdf import render_cv_pdf
+from app.cv_builder.job_retrieval_tool import JobRetrievalTool
+from app.cv_builder.profile_model import Profile
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-STUDENT_PROFILES_PATH = PROJECT_ROOT / "01_System" / "source_code" / "data" / "student_profiles.jsonl"
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[3] / "CV_Builder"
+STUDENT_PROFILES_PATH = Path(__file__).resolve().parent / "data" / "student_profiles.jsonl"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "03_Evidence" / "04_System_Tests"
 
 

@@ -51,6 +51,8 @@ class Slot:
     type: QuestionType
     difficulty: Difficulty
     focus: str | None = None
+    # CV Builder sessions: this slot probes a requirement the built CV doesn't show (focus)
+    gap: bool = False
 
 
 BULLET_RE = re.compile(r"^\s*(?:[-*•▪◦●‣]|\d{1,2}[.)])\s+")
@@ -141,6 +143,27 @@ def assign_focus(slots: list[Slot], used: Counter, jd_points: list[str], cv_item
         used[slot.focus] += 1
 
 
+def mentions_any(text: str, terms: list[str]) -> bool:
+    lowered = text.lower()
+    return any(t.strip() and re.search(rf"(?<!\w){re.escape(t.strip().lower())}(?!\w)", lowered) for t in terms)
+
+
+def prefer_matched(cv_items: list[str], matched_skills: list[str]) -> list[str]:
+    """CV items that use a skill the CV Builder matched to the job come first (stable)."""
+    return sorted(cv_items, key=lambda item: not mentions_any(item, matched_skills))
+
+
+def assign_gap_slot(slots: list[Slot], missing: list[str], probed: set[str]) -> None:
+    """Turn one slot into a question on a requirement the built CV doesn't show yet, so every
+    CV Builder batch asks about a gap until each one has been probed. Prefers a technical slot,
+    since gaps are mostly role requirements; replaces whatever focus assign_focus gave it."""
+    open_gaps = [m for m in missing if m.strip() and m not in probed]
+    if not open_gaps or not slots:
+        return
+    slot = next((s for s in slots if s.type == QuestionType.technical), slots[0])
+    slot.focus, slot.gap = open_gaps[0], True
+
+
 def plan_slots(
     count: int,
     existing: list[tuple[QuestionType, Difficulty]],
@@ -221,6 +244,10 @@ def generate_questions(
     jd_points = extract_jd_points(session.job_description)
     cv_items = extract_cv_items(session.cv_text)
     used_focus = Counter(q.focus for q in existing if q.focus)
+    # Sessions started from the CV Builder carry its structured view of the job.
+    context = session.cv_builder_context or None
+    if context:
+        cv_items = prefer_matched(cv_items, context.get("matched_skills") or [])
 
     kept: list[tuple[GeneratedQuestion, str | None]] = []
     dupes = 0
@@ -233,11 +260,17 @@ def generate_questions(
         mix = existing_mix + [(QuestionType(k.type), Difficulty(k.difficulty)) for k, _ in kept]
         slots = plan_slots(missing, mix, type_, difficulty)
         assign_focus(slots, used_focus, jd_points, cv_items)
+        if context:
+            assign_gap_slot(slots, context.get("missing_requirements") or [], set(used_focus))
+            for s in slots:
+                if s.gap:
+                    used_focus[s.focus] += 1
         asked = previous_texts + [k.question for k, _ in kept]
         system, user = prompts.render(
             "generate_questions", job_description=jd, cv_text=cv, previous_questions=asked,
             slots=[{"type": s.type.value, "difficulty": s.difficulty.value,
-                    "hint": SLOT_HINTS[s.type], "focus": s.focus} for s in slots],
+                    "hint": SLOT_HINTS[s.type], "focus": s.focus, "gap": s.gap} for s in slots],
+            cv_builder_context=context,
         )
         result = llm.chat_json(
             system, user, QuestionBatch, label=f"questions:{session_id[:8]}",

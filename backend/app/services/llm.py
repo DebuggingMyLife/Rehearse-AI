@@ -296,3 +296,29 @@ def check_ollama(settings: Settings, client: httpx.Client | None = None) -> Olla
         error=None if available else f"Model '{model}' is not pulled in Ollama.",
         fix=None if available else f"ollama pull {model}",
     )
+
+
+@dataclass
+class CvBuilderStatus:
+    ok: bool
+    backend: str
+    model: str
+    error: str | None = None
+    fix: str | None = None
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def check_cv_builder_llm(settings: Settings, client: httpx.Client | None = None) -> CvBuilderStatus:
+    """The CV Builder's own model (gpt-oss:20b by default), on Ollama or Groq."""
+    if settings.cv_builder_llm_backend == "groq":
+        # No network call: a key check is enough to tell the user what's missing.
+        has_key = bool(settings.groq_api_key)
+        return CvBuilderStatus(
+            ok=has_key, backend="groq", model=settings.groq_model,
+            error=None if has_key else "CV_BUILDER_LLM_BACKEND=groq but GROQ_API_KEY is not set.",
+            fix=None if has_key else "Add GROQ_API_KEY to .env, or set CV_BUILDER_LLM_BACKEND=local.",
+        )
+    status = check_ollama(settings.model_copy(update={"llm_model": settings.cv_builder_llm_model}), client)
+    return CvBuilderStatus(ok=status.ok, backend="local", model=status.model, error=status.error, fix=status.fix)

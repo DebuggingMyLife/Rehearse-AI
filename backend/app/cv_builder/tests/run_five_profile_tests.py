@@ -3,11 +3,13 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# backend/, so the `app` package imports when this is run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from cv_builder_cli import run_full_flow
+from app.cv_builder.cv_builder_cli import run_full_flow
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[4] / "CV_Builder"
 TEST_PROFILES_DIR = PROJECT_ROOT / "03_Evidence" / "04_System_Tests" / "test_profiles"
 RESULTS_PATH = PROJECT_ROOT / "03_Evidence" / "04_System_Tests" / "five_profile_results.md"
 

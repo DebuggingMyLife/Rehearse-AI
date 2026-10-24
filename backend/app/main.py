@@ -12,9 +12,9 @@ from .config import get_settings
 from .db import SessionLocal, init_db
 from .events import bus
 from .models import Attempt, AttemptStatus
-from .routers import attempts, health, questions, sessions
+from .routers import attempts, cv_builds, health, questions, sessions
 from .services.cleanup import cleanup_loop
-from .services.llm import check_ollama
+from .services.llm import check_cv_builder_llm, check_ollama
 from .services.pipeline import process_attempt
 from .services.transcription import load_transcriber
 
@@ -36,6 +36,11 @@ async def lifespan(app: FastAPI):
     else:
         # Don't refuse to start: the UI shows the error and fix command via /api/health.
         log.error("Ollama check failed: %s Fix: %s", status.error, status.fix)
+    cv_status = check_cv_builder_llm(settings)
+    if cv_status.ok:
+        log.info("CV Builder model OK (%s, %s)", cv_status.backend, cv_status.model)
+    else:
+        log.warning("CV Builder model check failed: %s Fix: %s", cv_status.error, cv_status.fix)
 
     bus.bind(asyncio.get_running_loop())
     # Load Whisper on the worker so startup isn't blocked; jobs queue behind it.
@@ -65,3 +70,4 @@ app.include_router(health.router)
 app.include_router(sessions.router)
 app.include_router(questions.router)
 app.include_router(attempts.router)
+app.include_router(cv_builds.router)

@@ -2,14 +2,16 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# backend/, so the `app` package imports when this is run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from cv_generator import CV_GENERATION_SYSTEM_PROMPT_V1, CV_GENERATION_SYSTEM_PROMPT_V2, CVGenerator
-from job_retrieval_tool import JobRetrievalTool
-from profile_model import Profile
+from app.cv_builder.cv_generator import CV_GENERATION_SYSTEM_PROMPT_V1, CV_GENERATION_SYSTEM_PROMPT_V2, CVGenerator
+from app.cv_builder.job_retrieval_tool import JobRetrievalTool
+from app.cv_builder.profile_model import Profile
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-STUDENT_PROFILES_PATH = PROJECT_ROOT / "01_System" / "source_code" / "data" / "student_profiles.jsonl"
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[4] / "CV_Builder"
+STUDENT_PROFILES_PATH = Path(__file__).resolve().parents[1] / "data" / "student_profiles.jsonl"
 
 TEST_DOCUMENT_ID = "student_profile_02"
 

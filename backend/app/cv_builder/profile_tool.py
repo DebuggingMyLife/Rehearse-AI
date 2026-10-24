@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from typing import List
 
-from profile_model import DraftProfile, Profile, describe_new_facts
+from .profile_model import DraftProfile, Profile, describe_new_facts
 
 
 class ProfileTool:

@@ -5,13 +5,24 @@ import { navigate } from "../hooks/useHashRoute";
 import { useReveal } from "../hooks/useReveal";
 
 const STEPS = [
-  { title: "Add your CV and the job", body: "Upload a PDF or DOCX and paste the job description you're preparing for." },
-  { title: "Answer out loud", body: "Get behavioural, technical and CV-specific questions, and answer them as you would in the room." },
-  { title: "Get feedback in seconds", body: "See your score, what landed, what was missing, and a stronger answer built from your own CV." },
-  { title: "Retry and improve", body: "Try the same question again and see exactly what changed since your last attempt." },
+  {
+    title: "Build your CV",
+    body: "Describe yourself in your own words. The CV Builder asks follow-ups, matches you to jobs and writes a tailored PDF. Already have a CV? Upload it instead.",
+  },
+  {
+    title: "Practise for that job",
+    body: "Get behavioural, technical and CV-specific questions, including how you'd handle what the role asks for that your CV doesn't show yet.",
+  },
+  { title: "Answer out loud", body: "Answer each question as you would in the room. Your answer is transcribed on your own computer." },
+  { title: "Get feedback and retry", body: "See your score, what landed and what was missing, then try again and see exactly what changed." },
 ];
 
 const FEATURES = [
+  {
+    icon: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+    title: "A CV from a conversation",
+    body: "Tell the CV Builder about yourself and it writes a CV tailored to a matched job, using only facts you've confirmed.",
+  },
   {
     icon: "M4 6h16M4 12h10M4 18h7",
     title: "Tailored questions",
@@ -30,17 +41,12 @@ const FEATURES = [
   {
     icon: "M4 17l5-5 4 4 7-7M14 9h6v6",
     title: "Track your progress",
-    body: "Every retry is compared with the last. Watch scores move and see which improvement points you've addressed.",
+    body: "Every retry is compared with the last, and each session ends with a summary of your top priorities, exportable as a PDF.",
   },
   {
     icon: "M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z",
     title: "Private by design",
     body: "Speech recognition and the language model run on your own computer. Your CV and answers never leave it.",
-  },
-  {
-    icon: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
-    title: "Session report",
-    body: "Finish with a summary of recurring strengths, weaknesses and your top priorities, and export it as a PDF.",
   },
 ];
 
@@ -120,9 +126,9 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-function GetStarted({ label = "Get started" }: { label?: string }) {
+function GetStarted({ label, to }: { label: string; to: string }) {
   return (
-    <button className="cta" onClick={() => navigate("/start")}>
+    <button className="cta" onClick={() => navigate(to)}>
       {label}
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -180,16 +186,6 @@ function Preview() {
   );
 }
 
-function Closing() {
-  const { ref, shown } = useReveal<HTMLElement>(0.3);
-  return (
-    <section ref={ref} className={`closing reveal ${shown ? "in" : ""}`}>
-      <h2>Walk into your next interview having already answered the questions.</h2>
-      <GetStarted label="Start practising" />
-    </section>
-  );
-}
-
 export default function LandingPage() {
   return (
     <div className="landing">
@@ -204,13 +200,17 @@ export default function LandingPage() {
             <span className="accent">out loud</span>
           </span>
         </h1>
-        <p className="hero-sub">
-          RehearseAI asks the questions this role will ask you, listens to your spoken answers, and gives you
-          honest, specific feedback in seconds, based on your own CV.
-        </p>
-        <div className="hero-cta">
-          <GetStarted />
-          <span className="muted small">No account. No cloud. About ten minutes a session.</span>
+        <div className="hero-choices">
+          <div className="choice">
+            <h3>Need a CV?</h3>
+            <p className="muted small">Talk it through and get a tailored PDF for a matched job.</p>
+            <GetStarted label="Build a CV" to="/build" />
+          </div>
+          <div className="choice">
+            <h3>Have one already?</h3>
+            <p className="muted small">Walk into your next interview with a CV made for the job, having already answered the questions.</p>
+            <GetStarted label="Start practising" to="/start" />
+          </div>
         </div>
         <Preview />
       </section>
@@ -235,7 +235,6 @@ export default function LandingPage() {
         </div>
       </RevealSection>
 
-      <Closing />
     </div>
   );
 }

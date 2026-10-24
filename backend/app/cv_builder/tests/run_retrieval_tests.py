@@ -2,14 +2,16 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# backend/, so the `app` package imports when this is run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from agent import ProfileAgent, build_llm
-from job_retrieval_tool import JobRetrievalTool
-from profile_model import Profile
+from app.cv_builder.agent import ProfileAgent, build_llm
+from app.cv_builder.job_retrieval_tool import JobRetrievalTool
+from app.cv_builder.profile_model import Profile
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-STUDENT_PROFILES_PATH = PROJECT_ROOT / "01_System" / "source_code" / "data" / "student_profiles.jsonl"
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[4] / "CV_Builder"
+STUDENT_PROFILES_PATH = Path(__file__).resolve().parents[1] / "data" / "student_profiles.jsonl"
 EVIDENCE_PATH = PROJECT_ROOT / "03_Evidence" / "03_Retrieval" / "retrieval_results.md"
 
 TEST_DOCUMENT_IDS = ["student_profile_01", "student_profile_02", "student_profile_04"]

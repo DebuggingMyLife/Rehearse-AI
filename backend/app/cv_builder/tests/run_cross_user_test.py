@@ -3,13 +3,15 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# backend/, so the `app` package imports when this is run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from agent import LLMClient, ProfileAgent, build_llm
-from cv_generator import CVGenerator
-from job_retrieval_tool import JobRetrievalTool
+from app.cv_builder.agent import LLMClient, ProfileAgent, build_llm
+from app.cv_builder.cv_generator import CVGenerator
+from app.cv_builder.job_retrieval_tool import JobRetrievalTool
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[4] / "CV_Builder"
 EVIDENCE_PATH = PROJECT_ROOT / "03_Evidence" / "04_System_Tests" / "cross_user_test.md"
 
 USER_A = {

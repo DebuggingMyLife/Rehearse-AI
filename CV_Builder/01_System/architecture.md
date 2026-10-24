@@ -1,5 +1,12 @@
 # Architecture
 
+> **Note (Assignment 3):** the source code described here now lives in
+> `backend/app/cv_builder/` at the repo root, where RehearseAI's FastAPI backend wraps it
+> (`backend/app/services/cv_builds.py`, `backend/app/routers/cv_builds.py`) and its React
+> frontend replaces `cv_builder_gui.py`, which has been removed. The modules, prompts and
+> grounding safety net are unchanged apart from package imports and paths. This document
+> is kept as the Assignment 1 record.
+
 AI-powered CV Builder: a conversational agent turns a free-text introduction into a
 structured profile (in two phases — see below), retrieves relevant jobs, checks the
 confirmed profile against the specific job's own stated requirements, generates a

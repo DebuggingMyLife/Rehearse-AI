@@ -5,16 +5,21 @@ import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from agent import EXTRACTION_SYSTEM_PROMPT, LLMClient, JobRequirementAgent, ProfileAgent, build_llm
-from cv_generator import CVGenerator
-from cv_pdf import render_cv_pdf
-from export_cv import edit_cv_interactive
-from job_retrieval_tool import JobRetrievalTool
+# Run as a script (python app/cv_builder/cv_builder_cli.py) or as a module (python -m
+# app.cv_builder.cv_builder_cli); either way the `app` package must be importable from backend/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from app.cv_builder.agent import EXTRACTION_SYSTEM_PROMPT, LLMClient, JobRequirementAgent, ProfileAgent, build_llm
+from app.cv_builder.cv_generator import CVGenerator
+from app.cv_builder.cv_pdf import render_cv_pdf
+from app.cv_builder.export_cv import edit_cv_interactive
+from app.cv_builder.job_retrieval_tool import JobRetrievalTool
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[3] / "CV_Builder"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "03_Evidence" / "04_System_Tests"
 
 

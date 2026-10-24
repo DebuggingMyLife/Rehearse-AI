@@ -7,7 +7,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable, Indenter, Paragraph, SimpleDocTemplate, Table, TableStyle
 
-from cv_style_spec import (
+from .cv_style_spec import (
     ACCENT_COLOR,
     BODY_COLOR,
     BODY_SIZE,
@@ -21,7 +21,7 @@ from cv_style_spec import (
     format_date_range,
     register_fonts,
 )
-from profile_model import Profile
+from .profile_model import Profile
 
 
 def _clean(text) -> str:

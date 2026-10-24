@@ -9,9 +9,13 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from groq import BadRequestError, Groq, RateLimitError
 
-from profile_tool import ProfileTool
+from .profile_tool import ProfileTool
 
 DEFAULT_MODEL = "openai/gpt-oss-20b"
+
+# RehearseAI's repo-root .env (this was 02_Setup/.env while the CV Builder was a
+# standalone project - see CV_Builder/02_Setup/).
+ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
 # This account's per-request AND rolling tokens-per-minute ceiling (prompt +
 # max_tokens combined) - see GroqLLM._throttle().
@@ -235,9 +239,11 @@ confirmed is a separate, later summary step - this message should never try to r
 single field or entry."""
 
 SUMMARY_SYSTEM_PROMPT = """You are a friendly assistant helping a student build a CV profile. Given the
-completed draft profile as JSON, write a short, plain-language summary (a few sentences or bullet
-points) of what was captured, then ask the student to confirm it looks correct. Do not invent details
-beyond what is in the JSON."""
+completed draft profile as JSON, write a concise, plain-language summary (at most 3 short sentences,
+no headings or bullet lists) of what was captured, speaking directly to the student as "you", then ask
+the student to confirm it looks correct. Never refer to the student in the third person or with a
+gendered word (he/she/his/her) - the profile records no gender. Do not invent details beyond what is
+in the JSON."""
 
 JOB_REQUIREMENT_GAP_SYSTEM_PROMPT = """You are a CV-building assistant. You will be given, in the user
 message, a JSON object with three keys:
@@ -320,11 +326,11 @@ class LLMClient:
 
 class GroqLLM(LLMClient):
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, env_path: Optional[str] = None):
-        load_dotenv(env_path or Path(__file__).resolve().parents[2] / "02_Setup" / ".env")
+        load_dotenv(env_path or ENV_PATH)
         key = api_key or os.environ.get("GROQ_API_KEY")
         if not key:
             raise RuntimeError(
-                "GROQ_API_KEY is not set. Create 02_Setup/.env with GROQ_API_KEY=<your key>."
+                "GROQ_API_KEY is not set. Add GROQ_API_KEY=<your key> to the repo-root .env."
             )
         self.client = Groq(api_key=key)
         self.model = model or os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
@@ -466,9 +472,9 @@ class LocalLLM(LLMClient):
         import httpx
 
         # Same as GroqLLM.__init__() - needed so a LocalLLM() constructed
-        # directly (bypassing build_llm()) still picks up 02_Setup/.env's
+        # directly (bypassing build_llm()) still picks up .env's
         # LOCAL_LLM_* values.
-        load_dotenv(Path(__file__).resolve().parents[2] / "02_Setup" / ".env")
+        load_dotenv(ENV_PATH)
         self._client = httpx.Client(
             base_url=base_url or os.environ.get("LOCAL_LLM_BASE_URL", DEFAULT_LOCAL_BASE_URL),
             timeout=180.0,  # local generation, especially at a larger num_ctx, can take a while
@@ -542,7 +548,7 @@ def build_llm(backend: Optional[str] = None, **kwargs) -> LLMClient:
     client from, instead of constructing GroqLLM()/LocalLLM() directly -
     reads LLM_BACKEND from the environment ("groq", the default, or
     "local") when `backend` isn't passed explicitly, so switching backends
-    is a one-line env var change (02_Setup/.env) with no code changes
+    is a one-line env var change (.env) with no code changes
     anywhere else. kwargs are forwarded to whichever backend is chosen
     (e.g. model=/base_url= for LocalLLM, api_key=/model= for GroqLLM)."""
     # Must load .env HERE, before reading LLM_BACKEND below - GroqLLM/
@@ -552,7 +558,7 @@ def build_llm(backend: Optional[str] = None, **kwargs) -> LLMClient:
     # fresh process (nothing had loaded .env into os.environ yet), always
     # falling through to the "groq" default and constructing GroqLLM
     # regardless of what .env actually said.
-    load_dotenv(Path(__file__).resolve().parents[2] / "02_Setup" / ".env")
+    load_dotenv(ENV_PATH)
     backend = (backend or os.environ.get("LLM_BACKEND", "groq")).strip().lower()
     if backend in ("local", "ollama"):
         return LocalLLM(**kwargs)

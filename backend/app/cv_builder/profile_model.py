@@ -584,6 +584,16 @@ class DraftProfile:
         for it this turn - a genuine Python guarantee, not reliance on the
         model remembering across turns."""
         model_gaps = [g for g in model_gaps if g.get("field") != "project_results"]
+        # Assignment 3 backstop: the model sometimes keeps reporting a simple field as "missing"
+        # after the student has answered it (seen live: year="final year" captured, yet "Year of
+        # study not specified" re-flagged every turn until the step cap ended intake). For these
+        # plain presence fields a stored value means the gap is wrong. degree is not included:
+        # a present degree can still legitimately lack its level.
+        present = {"name": self.name, "institution": self.institution, "year": self.year}
+        model_gaps = [
+            g for g in model_gaps
+            if not (g.get("issue") == "missing" and present.get(g.get("field")))
+        ]
 
         if phase == "intake":
             combined = [g for g in model_gaps if g.get("field") not in ("project_dates", "project_outcome")]

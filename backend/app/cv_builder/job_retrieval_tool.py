@@ -14,7 +14,7 @@ import numpy as np
 with contextlib.redirect_stdout(io.StringIO()):
     from sentence_transformers import SentenceTransformer
 
-from profile_model import Profile
+from .profile_model import Profile
 
 DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
 JOBS_PATH = Path(__file__).resolve().parent / "data" / "jobs.jsonl"

@@ -1,29 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
-/** True once the element has scrolled into view (stays true), for fade-in-on-scroll. */
+/** True while the element is in view, for fading in on scroll (and back out when it leaves,
+ *  e.g. scrolling back up). */
 export function useReveal<T extends Element>(threshold = 0.25) {
   const ref = useRef<T>(null);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || shown) return;
+    if (!el) return;
     if (typeof IntersectionObserver === "undefined") {
       setShown(true);
       return;
     }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold },
-    );
+    const io = new IntersectionObserver(([entry]) => setShown(entry.isIntersecting), { threshold });
     io.observe(el);
     return () => io.disconnect();
-  }, [shown, threshold]);
+  }, [threshold]);
 
   return { ref, shown };
 }

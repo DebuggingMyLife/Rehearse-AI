@@ -4,9 +4,9 @@ from dataclasses import asdict
 from difflib import SequenceMatcher
 from typing import List, Optional
 
-from agent import LLMClient, build_llm
-from cv_style_spec import SKILL_CATEGORIES
-from profile_model import Profile
+from .agent import LLMClient, build_llm
+from .cv_style_spec import SKILL_CATEGORIES
+from .profile_model import Profile
 
 CV_GENERATION_SYSTEM_PROMPT_V1 = """You are a CV-writing assistant for a CV Builder tool.
 
@@ -492,7 +492,22 @@ CV_GENERATION_SYSTEM_PROMPT_V13 = CV_GENERATION_SYSTEM_PROMPT_V12.replace(
     "delete a bullet like that outright rather than including it.",
 )
 
-CV_GENERATION_SYSTEM_PROMPT = CV_GENERATION_SYSTEM_PROMPT_V13
+# V14 (Assignment 3): live summaries came out long and in the third person, and assumed a
+# gender the profile never records ("she has built...") - confirmed_profile has no gender field
+# at all, so any pronoun is a guess. The summary is now short and written as the candidate.
+CV_GENERATION_SYSTEM_PROMPT_V14 = CV_GENERATION_SYSTEM_PROMPT_V13.replace(
+    "4. Writing a short (2-3 sentence) professional summary that only restates/synthesizes facts\n"
+    "   already in confirmed_profile.",
+    "4. Writing a concise professional summary (1-2 sentences, at most about 45 words) that only\n"
+    "   restates/synthesizes facts already in confirmed_profile. Write it in the FIRST PERSON, as the\n"
+    "   candidate would write it on their own CV - either with \"I\"/\"my\" or in the usual CV style with\n"
+    '   the subject left implied (e.g. "Computing Science graduate who built a real-time computer-vision\n'
+    '   pipeline in PyTorch..."). NEVER write it in the third person: never use the candidate\'s name,\n'
+    '   and never use "he", "she", "his", "her", "him", "they", "their" or any other word that refers to\n'
+    "   the candidate from outside - confirmed_profile records no gender, so never assume one.",
+)
+
+CV_GENERATION_SYSTEM_PROMPT = CV_GENERATION_SYSTEM_PROMPT_V14
 
 
 # Typographic characters the model tends to introduce when it rewrites a

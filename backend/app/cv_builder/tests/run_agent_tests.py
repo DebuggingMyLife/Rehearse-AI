@@ -2,13 +2,15 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# backend/, so the `app` package imports when this is run as a script
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from agent import ProfileAgent, build_llm
+from app.cv_builder.agent import ProfileAgent, build_llm
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+# The A1 record (evidence, setup docs) stays in CV_Builder/ at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[4] / "CV_Builder"
 EVIDENCE_DIR = PROJECT_ROOT / "03_Evidence" / "02_Agent"
 
 COMPLETE_INTRO = (
