@@ -1,15 +1,28 @@
 // Bundled (not loaded from a CDN) so the app keeps working offline.
 import "@fontsource/mrs-saint-delafield/latin-400.css";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { navigate } from "../hooks/useHashRoute";
+import { useReveal } from "../hooks/useReveal";
 
 const STEPS = [
-  { title: "Add your CV and the job", body: "Upload a PDF or DOCX and paste the job description you're preparing for." },
-  { title: "Answer out loud", body: "Get behavioural, technical and CV-specific questions, and answer them as you would in the room." },
-  { title: "Get feedback in seconds", body: "See your score, what landed, what was missing, and a stronger answer built from your own CV." },
-  { title: "Retry and improve", body: "Try the same question again and see exactly what changed since your last attempt." },
+  {
+    title: "Build your CV",
+    body: "Describe yourself in your own words. The CV Builder asks follow-ups, matches you to jobs and writes a tailored PDF. Already have a CV? Upload it instead.",
+  },
+  {
+    title: "Practise for that job",
+    body: "Get behavioural, technical and CV-specific questions, including how you'd handle what the role asks for that your CV doesn't show yet.",
+  },
+  { title: "Answer out loud", body: "Answer each question as you would in the room. Your answer is transcribed on your own computer." },
+  { title: "Get feedback and retry", body: "See your score, what landed and what was missing, then try again and see exactly what changed." },
 ];
 
 const FEATURES = [
+  {
+    icon: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+    title: "A CV from a conversation",
+    body: "Tell the CV Builder about yourself and it writes a CV tailored to a matched job, using only facts you've confirmed.",
+  },
   {
     icon: "M4 6h16M4 12h10M4 18h7",
     title: "Tailored questions",
@@ -28,19 +41,82 @@ const FEATURES = [
   {
     icon: "M4 17l5-5 4 4 7-7M14 9h6v6",
     title: "Track your progress",
-    body: "Every retry is compared with the last. Watch scores move and see which improvement points you've addressed.",
+    body: "Every retry is compared with the last, and each session ends with a summary of your top priorities, exportable as a PDF.",
   },
   {
     icon: "M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z",
     title: "Private by design",
     body: "Speech recognition and the language model run on your own computer. Your CV and answers never leave it.",
   },
-  {
-    icon: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
-    title: "Session report",
-    body: "Finish with a summary of recurring strengths, weaknesses and your top priorities, and export it as a PDF.",
-  },
 ];
+
+const STEP_MS = 2600;
+
+/** "How it works": highlights each step in turn (1 -> 4, then loops) once the section is on
+ *  screen. Hovering a step holds it; reduced-motion users get the static cards. */
+function Steps() {
+  const ref = useRef<HTMLOListElement>(null);
+  const [active, setActive] = useState(-1); // -1 until the section has been seen
+  const [held, setHeld] = useState<number | null>(null);
+  const [visible, setVisible] = useState(false);
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!visible || held !== null) return;
+    setActive((a) => (a < 0 ? 0 : a));
+    const id = window.setInterval(() => setActive((a) => (a + 1) % STEPS.length), STEP_MS);
+    return () => window.clearInterval(id);
+  }, [visible, held]);
+
+  const current = held ?? active;
+  return (
+    <ol
+      ref={ref}
+      className={`steps ${reducedMotion ? "" : "animated"}`}
+      style={{ ["--step-ms" as string]: `${STEP_MS}ms` }}
+      onMouseLeave={() => setHeld(null)}
+    >
+      {STEPS.map((s, i) => (
+        <li
+          key={s.title}
+          className={`reveal-item ${i === current ? "active" : i < current ? "done" : ""}`}
+          style={revealOrder(i + 1)}
+          onMouseEnter={() => setHeld(i)}
+          aria-current={i === current ? "step" : undefined}
+        >
+          <span className="step-num">{i + 1}</span>
+          <h3>{s.title}</h3>
+          <p>{s.body}</p>
+          {/* Re-keyed each time this step becomes active so the bar restarts from empty. */}
+          {i === current && held === null && <span key={`bar-${active}`} className="step-bar" aria-hidden />}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Order within a revealing section: items fade in one after another. */
+function revealOrder(i: number) {
+  return { ["--reveal-i" as string]: i };
+}
+
+/** A landing section whose `.reveal-item` children fade and rise in when it scrolls into view. */
+function RevealSection({ children }: { children: ReactNode }) {
+  const { ref, shown } = useReveal<HTMLElement>(0.2);
+  return (
+    <section ref={ref} className={`landing-section reveal-group ${shown ? "in" : ""}`}>
+      {children}
+    </section>
+  );
+}
 
 function Icon({ d }: { d: string }) {
   return (
@@ -50,9 +126,9 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-function GetStarted({ label = "Get started" }: { label?: string }) {
+function GetStarted({ label, to }: { label: string; to: string }) {
   return (
-    <button className="cta" onClick={() => navigate("/start")}>
+    <button className="cta" onClick={() => navigate(to)}>
       {label}
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -124,35 +200,31 @@ export default function LandingPage() {
             <span className="accent">out loud</span>
           </span>
         </h1>
-        <p className="hero-sub">
-          RehearseAI asks the questions this role will ask you, listens to your spoken answers, and gives you
-          honest, specific feedback in seconds, based on your own CV.
-        </p>
-        <div className="hero-cta">
-          <GetStarted />
-          <span className="muted small">No account. No cloud. About ten minutes a session.</span>
+        <div className="hero-choices">
+          <div className="choice">
+            <h3>Need a CV?</h3>
+            <p className="muted small">Talk it through and get a tailored PDF for a matched job.</p>
+            <GetStarted label="Build a CV" to="/build" />
+          </div>
+          <div className="choice">
+            <h3>Have one already?</h3>
+            <p className="muted small">Walk into your next interview with a CV made for the job, having already answered the questions.</p>
+            <GetStarted label="Start practising" to="/start" />
+          </div>
         </div>
         <Preview />
       </section>
 
-      <section className="landing-section">
-        <h2 className="section-title">How it works</h2>
-        <ol className="steps">
-          {STEPS.map((s, i) => (
-            <li key={s.title}>
-              <span className="step-num">{i + 1}</span>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <RevealSection>
+        <h2 className="section-title reveal-item">How it works</h2>
+        <Steps />
+      </RevealSection>
 
-      <section className="landing-section">
-        <h2 className="section-title">Practice that feels like the real thing</h2>
+      <RevealSection>
+        <h2 className="section-title reveal-item">Practice that feels like the real thing</h2>
         <div className="features">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="feature">
+          {FEATURES.map((f, i) => (
+            <div key={f.title} className="feature reveal-item" style={revealOrder(i + 1)}>
               <span className="feature-icon">
                 <Icon d={f.icon} />
               </span>
@@ -161,12 +233,8 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
+      </RevealSection>
 
-      <section className="closing">
-        <h2>Walk into your next interview having already answered the questions.</h2>
-        <GetStarted label="Start practising" />
-      </section>
     </div>
   );
 }

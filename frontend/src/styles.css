@@ -431,14 +431,32 @@ ul.summary-questions { list-style: none; padding: 0; display: flex; flex-directi
   letter-spacing: 0;
   line-height: 0.6;
   color: var(--accent);
-  /* A hairline stroke gives the pen script enough weight beside the 800-weight headline. */
-  -webkit-text-stroke: 0.012em currentColor;
+  /* The script has a single, hairline weight; an outline stroke thickens the pen line so it
+     holds its own beside the 800-weight headline. */
+  -webkit-text-stroke: 0.032em currentColor;
   padding: 0 0.08em 0 0.02em;
 }
 /* Own line, with headroom for the script's tall ascenders. */
 .hero-title .accent-line { display: block; margin-top: 0.55em; line-height: 1; }
 .hero-sub { margin: 20px 0 0; max-width: 36em; font-size: 1.12rem; line-height: 1.6; color: var(--muted); }
 .hero-cta { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 32px; }
+/* Two equal ways in: build a CV, or practise with one you have. */
+.hero-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 32px; width: 100%; max-width: 620px; }
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+.choice p { margin: 0 0 6px; }
+/* Button pinned to the bottom so both cards line up whatever their text length. */
+.choice .cta { width: 100%; justify-content: center; margin-top: auto; }
+.hero-note { margin-top: 14px; }
+@media (max-width: 560px) { .hero-choices { grid-template-columns: 1fr; } }
 button.cta {
   display: inline-flex;
   align-items: center;
@@ -507,18 +525,6 @@ button.cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px
 @media (max-width: 760px) { .steps, .features { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 480px) { .steps, .features { grid-template-columns: 1fr; } }
 
-.closing {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  text-align: center;
-  padding: 44px 24px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: var(--card);
-}
-.closing h2 { margin: 0; max-width: 20em; font-size: 1.5rem; letter-spacing: -0.02em; line-height: 1.3; }
 
 /* Page transition */
 .page-enter { animation: page-enter 280ms cubic-bezier(0.2, 0.7, 0.2, 1); }
@@ -527,3 +533,178 @@ button.cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .page-enter { animation: none; } }
+
+/* How it works: step-by-step highlight */
+.steps.animated li {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.45s ease, transform 0.45s ease, box-shadow 0.45s ease, opacity 0.45s ease;
+  opacity: 0.6;
+}
+.steps.animated li.done { opacity: 0.8; }
+.steps.animated li.active {
+  opacity: 1;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -18px var(--accent);
+}
+.steps.animated .step-num { transition: background 0.45s ease, color 0.45s ease, transform 0.45s ease; }
+.steps.animated li:not(.active):not(.done) .step-num { background: var(--tag-bg); color: var(--muted); }
+.steps.animated li.active .step-num { transform: scale(1.12); }
+.step-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: step-bar var(--step-ms) linear forwards;
+}
+@keyframes step-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Section items fade in one after another. The animation only fills *backwards*, and its end
+   keyframe leaves opacity unset, so afterwards each item returns to its own styling (e.g. the
+   dimmed / active how-it-works steps) without a jump. `translate` is used rather than
+   `transform` so it doesn't fight the steps' lift or hover effects. */
+/* Leaving the screen (e.g. scrolling back up) fades the items out again, a little quicker. */
+.landing .reveal-group:not(.in) .reveal-item {
+  opacity: 0;
+  translate: 0 22px;
+  transition: opacity 0.35s ease, translate 0.35s ease;
+}
+.landing .reveal-group.in .reveal-item {
+  animation: reveal-item 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--reveal-i, 0) * 90ms);
+}
+@keyframes reveal-item {
+  from { opacity: 0; translate: 0 22px; }
+  to { translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .reveal-group:not(.in) .reveal-item { opacity: 1; translate: none; transition: none; }
+  .landing .reveal-group.in .reveal-item { animation: none; }
+}
+
+/* Header navigation */
+.topnav { display: flex; gap: 4px; margin-right: auto; margin-left: 12px; }
+.topnav a {
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.topnav a:hover { color: var(--fg); background: var(--tag-bg); }
+.topnav a.on { color: var(--fg); background: var(--tag-bg); }
+@media (max-width: 560px) { .topnav { order: 3; width: 100%; margin: 0; } }
+
+/* Forms (CV Builder) */
+input[type="text"] {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+fieldset { border: 1px solid var(--border); margin: 0; min-width: 0; }
+fieldset.card { padding: 18px; }
+fieldset:disabled { opacity: 0.7; }
+h4 { margin: 8px 0 0; font-size: 0.95rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+.entry { padding: 12px; border: 1px dashed var(--border); border-radius: 8px; }
+.entry-head { display: flex; justify-content: flex-end; margin-bottom: -6px; }
+button.link.danger { color: var(--err-fg); font-size: 0.88rem; }
+button.link.danger:hover { text-decoration: underline; }
+.prewrap { white-space: pre-wrap; line-height: 1.55; margin: 0; }
+.tag.no-caps { text-transform: none; }
+.tag.gap-tag { background: var(--warn-bg); color: var(--warn-fg); text-transform: none; }
+
+/* Progress while a CV Builder step runs */
+.working { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.working-note { flex-basis: 100%; }
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--tag-bg);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-color: var(--accent); } }
+
+.build-progress { padding: 4px 2px; }
+
+/* Follow-up chat */
+.chat { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); }
+.msg p { margin: 2px 0 0; line-height: 1.5; white-space: pre-wrap; }
+.msg.agent { align-self: flex-start; background: var(--tag-bg); border-top-left-radius: 4px; }
+.msg.user { align-self: flex-end; background: var(--card); border-top-right-radius: 4px; }
+.msg-who { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+.phase-divider {
+  margin: -2px 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Job matches */
+.job-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.job-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+.job-card:hover, .job-card.selected { border-color: var(--accent); }
+.job-body { flex: 1; min-width: 0; }
+.job-body p { margin: 2px 0 6px; }
+@media (max-width: 560px) { .job-card { flex-wrap: wrap; } .job-card > button { margin-left: auto; } }
+
+/* CV editor */
+.practise-row .cta { padding: 12px 22px; font-size: 1rem; }
+.pdf-frame { width: 100%; height: 75vh; min-height: 480px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+details.banner summary { margin: 0; }
+details.banner ul { margin: 8px 0 0; padding-left: 1.2em; font-size: 0.88rem; }
+
+/* Lists of builds (CV Builder intro, practice setup) */
+.build-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.build-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.build-list li > a, .build-list li > label { flex: 1; min-width: 0; }
+.build-list.pickable label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+/* Upload / built CV switch */
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 3px; }
+.segmented button { border: none; border-radius: 6px; padding: 6px 14px; color: var(--muted); font-weight: 600; }
+.segmented button.on { background: var(--accent); color: var(--accent-fg); }
+
+/* Sessions started from the CV Builder */
+.builder-badge { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.builder-badge p { margin: 0; }
+.tag.builder-tag {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--fg);
+  text-transform: none;
+  font-weight: 600;
+}

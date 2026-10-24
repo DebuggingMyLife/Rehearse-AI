@@ -223,6 +223,13 @@ def main() -> int:
             ok(f"Model {model} is pulled")
         else:
             fail(f"Model {model} not pulled. Fix: ollama pull {model}"); problems += 1
+        # The CV Builder has its own model (see CV_BUILDER_LLM_* in .env.example).
+        if env.get("CV_BUILDER_LLM_BACKEND", "local") == "local":
+            cv_model = env.get("CV_BUILDER_LLM_MODEL", "gpt-oss:20b")
+            if check_ollama(host, cv_model)[1]:
+                ok(f"CV Builder model {cv_model} is pulled")
+            else:
+                warn(f"CV Builder model {cv_model} not pulled (only needed to build CVs). Fix: ollama pull {cv_model}")
 
     print("\nRecommended .env for this machine")
     rec = recommend(gpus, ram, apple_silicon)

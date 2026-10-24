@@ -44,10 +44,15 @@ export function useHealth() {
 export function StatusIndicators({ health, backendDown }: { health: Health | null; backendDown: boolean }) {
   if (backendDown) return <Indicator state="error" label="Backend" detail="The backend isn't running." />;
   if (!health) return null;
-  const { ollama, whisper } = health;
+  const { ollama, whisper, cv_builder } = health;
   const whisperState: State = whisper.loaded ? "ok" : whisper.loading ? "loading" : "error";
   return (
     <div className="statuses">
+      <Indicator
+        state={cv_builder.ok ? "ok" : "error"}
+        label="CV Builder"
+        detail={cv_builder.backend === "groq" ? `${cv_builder.model} on Groq` : `${cv_builder.model} at ${ollama.host}`}
+      />
       <Indicator state={ollama.ok ? "ok" : "error"} label="LLM" detail={`${ollama.model} at ${ollama.host}`} />
       <Indicator
         state={whisperState}
@@ -66,10 +71,13 @@ export function StatusProblems({
   health,
   backendDown,
   refresh,
+  cvBuilder = false,
 }: {
   health: Health | null;
   backendDown: boolean;
   refresh: () => void;
+  /** On CV Builder pages, its model's problems are shown as errors too. */
+  cvBuilder?: boolean;
 }) {
   if (backendDown) {
     return (
@@ -80,9 +88,21 @@ export function StatusProblems({
     );
   }
   if (!health) return null;
-  const { ollama, whisper } = health;
+  const { ollama, whisper, cv_builder } = health;
   return (
     <>
+      {cvBuilder && !cv_builder.ok && (
+        <div className="banner error">
+          <strong>CV Builder: {cv_builder.error}</strong>
+          {cv_builder.fix && (
+            <>
+              {" "}
+              Fix: <code>{cv_builder.fix}</code>
+            </>
+          )}{" "}
+          <button onClick={refresh}>Re-check</button>
+        </div>
+      )}
       {!ollama.ok && (
         <div className="banner error">
           <strong>{ollama.error}</strong>

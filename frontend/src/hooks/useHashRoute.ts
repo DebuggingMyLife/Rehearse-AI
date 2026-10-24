@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 export type Route =
   | { page: "landing" }
   | { page: "setup" }
+  | { page: "build" }
+  | { page: "buildStep"; buildId: string }
   | { page: "cv"; sessionId: string }
   | { page: "questions"; sessionId: string }
   | { page: "summary"; sessionId: string }
@@ -20,6 +22,7 @@ function parse(hash: string): Route {
     return parts[2] === "cv" ? { page: "cv", sessionId: parts[1] } : { page: "questions", sessionId: parts[1] };
   }
   if (parts[0] === "start") return { page: "setup" };
+  if (parts[0] === "build") return parts[1] ? { page: "buildStep", buildId: parts[1] } : { page: "build" };
   return { page: "landing" };
 }
 

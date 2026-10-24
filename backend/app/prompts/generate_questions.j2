@@ -54,6 +54,20 @@ CANDIDATE CV:
 {{ cv_text }}
 """
 
+{% if cv_builder_context is defined and cv_builder_context %}
+CV BUILDER NOTES. The candidate built this CV for the {{ cv_builder_context.job_title }} role with
+our CV Builder, which compared their confirmed profile with the role:
+{% if cv_builder_context.matched_skills %}
+- Skills on the CV that match this role: {{ cv_builder_context.matched_skills|join(", ") }}.
+  For cv_specific questions, prefer a project or experience that uses one of these.
+{% endif %}
+{% if cv_builder_context.missing_requirements %}
+- Requirements of this role to probe as gaps (the candidate may not have them): {{ cv_builder_context.missing_requirements|join("; ") }}.
+{% endif %}
+These notes only help you choose what to ask. They are not experience: never assume the
+candidate has a missing requirement, and cv_evidence still comes only from the CANDIDATE CV.
+
+{% endif %}
 {% if previous_questions %}
 Already asked. Every new question must cover a DIFFERENT topic, project and skill from
 all of these; do not repeat, rephrase or extend them:
@@ -65,7 +79,12 @@ all of these; do not repeat, rephrase or extend them:
 Write exactly {{ slots|length }} new question{{ "s" if slots|length > 1 }}, in this order:
 {% for s in slots %}
 {{ loop.index }}. type={{ s.type }}, difficulty={{ s.difficulty }}: {{ s.hint }}
-{% if s.focus %}
+{% if s.gap is defined and s.gap %}
+   Gap question about "{{ s.focus }}": ask how the candidate would handle it in this role or
+   get up to speed with it, drawing on related experience. Do not assume they have used it.
+   Ask it as an interviewer would, e.g. "This role uses X day to day. How would you get up
+   to speed with it?", and never mention their CV or what it lists.
+{% elif s.focus %}
    Focus on: "{{ s.focus }}"
 {% endif %}
 {% endfor %}

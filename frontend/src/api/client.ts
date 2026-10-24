@@ -9,9 +9,18 @@ export interface OllamaStatus {
   fix: string | null;
 }
 
+export interface CvBuilderStatus {
+  ok: boolean;
+  backend: "local" | "groq";
+  model: string;
+  error: string | null;
+  fix: string | null;
+}
+
 export interface Health {
   ok: boolean;
   ollama: OllamaStatus;
+  cv_builder: CvBuilderStatus;
   whisper: {
     backend: string;
     model_size: string;
@@ -53,6 +62,16 @@ export interface Session {
   questions: Question[];
   ended_at: string | null;
   summary: SessionSummary | null;
+  cv_build_id: string | null;
+  cv_builder_context: CvBuilderContext | null;
+}
+
+/** Set on sessions started from a CV Builder build. */
+export interface CvBuilderContext {
+  job_title: string;
+  matched_skills: string[];
+  missing_requirements: string[];
+  summary: string;
 }
 
 export interface SessionStats {
@@ -218,6 +237,109 @@ export interface GenerateResponse {
   duration_ms: number;
 }
 
+// --- CV Builder ---
+
+export type CvBuildStage = "followup" | "confirm" | "jobs" | "requirements" | "cv";
+
+export interface DraftExperience {
+  role: string | null;
+  organisation: string | null;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+export interface DraftProject {
+  title: string;
+  description: string | null;
+  technologies: string[];
+  start_date: string | null;
+  end_date: string | null;
+  dates_declined: boolean;
+  outcome_declined: boolean;
+}
+
+/** The CV Builder's DraftProfile (only the fields the UI reads or edits). */
+export interface Draft {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  github: string | null;
+  linkedin: string | null;
+  degree: string | null;
+  institution: string | null;
+  year: string | null;
+  technical_skills: string[];
+  target_roles: string[];
+  summary: string | null;
+  achievements: string[];
+  experience: DraftExperience[];
+  projects: DraftProject[];
+}
+
+export interface JobMatch {
+  document_id: string;
+  title: string;
+  location: string | null;
+  score: number | null;
+  excerpt: string | null;
+}
+
+export interface GeneratedCv {
+  summary: string;
+  education: string;
+  additional_education?: { text: string }[];
+  skills: string[];
+  experience: { role: string; organisation: string; description: string }[];
+  projects: { title: string; description: string; technologies?: string[] }[];
+  matched_skills: string[];
+  missing_requirements: string[];
+  grounding_warnings: string[];
+  target_job_title: string;
+}
+
+export interface CvBuildSummary {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  stage: CvBuildStage;
+  name: string | null;
+  job_title: string | null;
+  has_cv: boolean;
+  job_description: string | null;
+}
+
+export interface CvBuild extends CvBuildSummary {
+  phase: "intake" | "review";
+  pending_question: string | null;
+  review_checked: boolean;
+  ended_at_step_limit: boolean;
+  conversation: { role: "user" | "agent"; text: string; phase: "intake" | "review" }[];
+  confirm_summary: string | null;
+  draft: Draft;
+  job_matches: JobMatch[];
+  selected_job: JobMatch | null;
+  requirement_question: string | null;
+  requirement_gaps: { requirement: string; kind: string; reason: string }[] | null;
+  last_resolution: { confirmed_skills: string[]; confirmed_notes: string[]; declined: string[] } | null;
+  cv: GeneratedCv | null;
+}
+
+export type ProfileEdit = Omit<Draft, "experience" | "projects"> & {
+  experience: DraftExperience[];
+  projects: DraftProject[];
+  confirm: boolean;
+};
+
+export interface CvEdit {
+  summary?: string;
+  education?: string;
+  skills?: string[];
+  additional_education?: string[];
+  experience?: string[];
+  projects?: string[];
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -272,6 +394,22 @@ export const api = {
   endSession: (id: string) => request<Session>(`/api/sessions/${id}/end`, { method: "POST" }),
 
   getQuestion: (questionId: number) => request<QuestionDetail>(`/api/questions/${questionId}`),
+
+  listBuilds: () => request<CvBuildSummary[]>("/api/cv-builds"),
+  createBuild: (intro: string) => request<CvBuild>("/api/cv-builds", json("POST", { intro })),
+  getBuild: (id: string) => request<CvBuild>(`/api/cv-builds/${id}`),
+  replyBuild: (id: string, text: string) => request<CvBuild>(`/api/cv-builds/${id}/reply`, json("POST", { text })),
+  startReview: (id: string) => request<CvBuild>(`/api/cv-builds/${id}/review/start`, { method: "POST" }),
+  saveProfile: (id: string, edit: ProfileEdit) => request<CvBuild>(`/api/cv-builds/${id}/profile`, json("PUT", edit)),
+  reopenProfile: (id: string) => request<CvBuild>(`/api/cv-builds/${id}/profile/reopen`, { method: "POST" }),
+  selectJob: (id: string, jobId: string) => request<CvBuild>(`/api/cv-builds/${id}/job`, json("POST", { job_id: jobId })),
+  answerRequirements: (id: string, text: string | null) =>
+    request<CvBuild>(`/api/cv-builds/${id}/requirements`, json("POST", text === null ? { skip: true } : { text })),
+  generateCv: (id: string) => request<CvBuild>(`/api/cv-builds/${id}/cv`, { method: "POST" }),
+  updateCv: (id: string, edit: CvEdit) => request<CvBuild>(`/api/cv-builds/${id}/cv`, json("PATCH", edit)),
+  cvPdfUrl: (id: string, download = false) => `/api/cv-builds/${id}/cv.pdf${download ? "?download=1" : ""}`,
+  startPractice: (id: string, jobDescription?: string) =>
+    request<Session>(`/api/cv-builds/${id}/practice`, json("POST", { job_description: jobDescription ?? null })),
 
   submitAttempt: (questionId: number, audio: Blob, durationS: number) => {
     const form = new FormData();

@@ -1,0 +1,64 @@
+{
+  "profile": "Liam Patel",
+  "job_a": {
+    "document_id": "graduate_ai_engineer",
+    "title": "Graduate AI Engineer"
+  },
+  "job_b": {
+    "document_id": "rag_agent_engineer",
+    "title": "AI Engineer"
+  },
+  "v1_skills_job_a": [
+    "Python",
+    "pandas",
+    "NumPy",
+    "scikit-learn",
+    "PyTorch basics",
+    "SQL",
+    "Hugging Face Transformers basics",
+    "Git",
+    "Jupyter Notebook"
+  ],
+  "v1_skills_job_b": [
+    "Python",
+    "pandas",
+    "NumPy",
+    "scikit-learn",
+    "PyTorch basics",
+    "SQL",
+    "Hugging Face Transformers basics",
+    "Git",
+    "Jupyter Notebook"
+  ],
+  "v1_identical_order": true,
+  "v2_skills_job_a": [
+    "Python",
+    "NumPy",
+    "pandas",
+    "scikit-learn",
+    "PyTorch basics",
+    "Hugging Face Transformers basics",
+    "SQL",
+    "Git",
+    "Jupyter Notebook"
+  ],
+  "v2_skills_job_b": [
+    "Python",
+    "Hugging Face Transformers basics",
+    "scikit-learn",
+    "PyTorch basics",
+    "pandas",
+    "NumPy",
+    "SQL",
+    "Git",
+    "Jupyter Notebook"
+  ],
+  "v2_identical_order": false,
+  "v1_grounding_warnings": [],
+  "v2_grounding_warnings": [
+    "Dropped ungrounded matched_skills entry: 'embeddings' (not in profile.technical_skills)",
+    "Dropped ungrounded matched_skills entry: 'FAISS' (not in profile.technical_skills)",
+    "Dropped ungrounded matched_skills entry: 'LLM API' (not in profile.technical_skills)",
+    "Dropped ungrounded matched_skills entry: 'prompt design' (not in profile.technical_skills)"
+  ]
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Difficulty, type Question, type QuestionType, type Session } from "../api/client";
+import CvBuilderBadge from "../components/CvBuilderBadge";
 import { navigate } from "../hooks/useHashRoute";
 import { useElapsed } from "../hooks/useElapsed";
 
@@ -136,6 +137,7 @@ export default function QuestionsPage({ sessionId }: { sessionId: string }) {
             {session.questions.length} questions · {attempted} attempted · CV: {session.cv_filename}{" "}
             <a href={`#/s/${sessionId}/cv`}>review</a>
           </p>
+          <CvBuilderBadge session={session} />
         </div>
         <div className="actions">
           {attempted > 0 && (

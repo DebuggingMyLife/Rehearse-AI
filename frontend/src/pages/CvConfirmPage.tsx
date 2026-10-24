@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Session } from "../api/client";
+import CvBuilderBadge from "../components/CvBuilderBadge";
 import { navigate } from "../hooks/useHashRoute";
 import { useElapsed } from "../hooks/useElapsed";
 
@@ -45,6 +46,7 @@ export default function CvConfirmPage({ sessionId }: { sessionId: string }) {
   return (
     <div className="card stack">
       <h2>Check your CV was read correctly</h2>
+      <CvBuilderBadge session={session} />
       <p className="muted">
         This is the text extracted from <strong>{session.cv_filename}</strong>. Questions and feedback are based only
         on this text, so fix anything that's missing or garbled.
@@ -74,9 +76,15 @@ export default function CvConfirmPage({ sessionId }: { sessionId: string }) {
                 : "Continue to questions"
               : "Looks right, generate questions"}
         </button>
-        <button onClick={() => navigate("/start")} disabled={busy}>
-          Upload a different CV
-        </button>
+        {session.cv_build_id ? (
+          <button onClick={() => navigate(`/build/${session.cv_build_id}`)} disabled={busy}>
+            Back to your CV
+          </button>
+        ) : (
+          <button onClick={() => navigate("/start")} disabled={busy}>
+            Upload a different CV
+          </button>
+        )}
         {busy && !hasQuestions && <span className="muted small">Usually 10 to 20 seconds on a GPU.</span>}
       </div>
     </div>

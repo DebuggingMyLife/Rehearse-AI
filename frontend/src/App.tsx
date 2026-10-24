@@ -4,6 +4,8 @@ import ThemeToggle from "./components/ThemeToggle";
 import { useEffect } from "react";
 import { useHashRoute, type Route } from "./hooks/useHashRoute";
 import AttemptPage from "./pages/AttemptPage";
+import BuildIntroPage from "./pages/BuildIntroPage";
+import BuildPage from "./pages/BuildPage";
 import CvConfirmPage from "./pages/CvConfirmPage";
 import LandingPage from "./pages/LandingPage";
 import QuestionsPage from "./pages/QuestionsPage";
@@ -11,13 +13,20 @@ import SetupPage from "./pages/SetupPage";
 import SummaryPage from "./pages/SummaryPage";
 
 function routeKey(route: Route): string {
-  return [route.page, "sessionId" in route ? route.sessionId : "", "questionId" in route ? route.questionId : ""].join(":");
+  return [
+    route.page,
+    "sessionId" in route ? route.sessionId : "",
+    "questionId" in route ? route.questionId : "",
+    "buildId" in route ? route.buildId : "",
+  ].join(":");
 }
 
 export default function App() {
   const route = useHashRoute();
   const { health, backendDown, refresh } = useHealth();
   const pageKey = routeKey(route);
+  const building = route.page === "build" || route.page === "buildStep";
+  const practising = !building && route.page !== "landing";
 
   // New page: start at the top rather than wherever the last one was scrolled to.
   useEffect(() => {
@@ -31,16 +40,26 @@ export default function App() {
             <Logo />
           </h1>
         </a>
+        <nav className="topnav" aria-label="Main">
+          <a href="#/build" className={building ? "on" : ""} aria-current={building ? "page" : undefined}>
+            Build a CV
+          </a>
+          <a href="#/start" className={practising ? "on" : ""} aria-current={practising ? "page" : undefined}>
+            Practise
+          </a>
+        </nav>
         <div className="topbar-right">
           <StatusIndicators health={health} backendDown={backendDown} />
           <ThemeToggle />
         </div>
       </header>
-      <StatusProblems health={health} backendDown={backendDown} refresh={refresh} />
+      <StatusProblems health={health} backendDown={backendDown} refresh={refresh} cvBuilder={building} />
       {/* Keyed by route so each page mounts fresh and plays the enter animation. */}
       <main key={pageKey} className="page-enter">
         {route.page === "landing" && <LandingPage />}
         {route.page === "setup" && <SetupPage />}
+        {route.page === "build" && <BuildIntroPage />}
+        {route.page === "buildStep" && <BuildPage key={route.buildId} buildId={route.buildId} />}
         {route.page === "cv" && <CvConfirmPage key={route.sessionId} sessionId={route.sessionId} />}
         {route.page === "attempt" && (
           <AttemptPage key={route.questionId} sessionId={route.sessionId} questionId={route.questionId} />

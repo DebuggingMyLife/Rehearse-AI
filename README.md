@@ -1,12 +1,27 @@
 # RehearseAI
 
-AI mock interview practice that runs fully locally. Upload your CV, paste a job
-description, answer generated questions out loud, and get feedback on each attempt.
-No external APIs; nothing leaves your machine after setup.
+Build a CV for a job, then rehearse the interview for it, all on your own machine. One app,
+with two ways in from the landing page:
+
+1. **Build a CV**: describe yourself in your own words. The CV Builder asks follow-up
+   questions, matches you to jobs, checks the chosen job's requirements against your
+   profile, and writes a tailored CV (with a PDF) using only facts you've confirmed. From
+   there, **Practise the interview for this job** goes straight to a mock interview.
+2. **Start practising**: upload a CV (or pick one you built), add the job description,
+   answer generated questions out loud, and get feedback on each attempt.
+
+The CV Builder is the Assignment 1 system (`CV_Builder/` holds its original report and
+evidence); RehearseAI extends it with the spoken mock interview. Sessions started from a
+built CV know which skills matched the job and which requirements the CV doesn't show, and
+the interview asks about those gaps.
+
+No external APIs by default; nothing leaves your machine after setup.
 
 - Backend: Python 3.10+ / FastAPI / SQLite
 - Frontend: React + Vite (TypeScript)
-- LLM: [Ollama](https://ollama.com) (`qwen2.5:7b` by default)
+- LLMs: [Ollama](https://ollama.com): `qwen2.5:7b` for the interview, `gpt-oss:20b` for the
+  CV Builder (Groq is an optional cloud fallback for the CV Builder)
+- Job matching: sentence-transformers (`all-MiniLM-L6-v2`)
 - Transcription: faster-whisper (NVIDIA/CPU), mlx-whisper or whisper.cpp (Apple Silicon)
 
 ## Requirements
@@ -28,14 +43,26 @@ warning.
 
 ## Setup
 
-### 1. Install Ollama and pull the model
+### 1. Install Ollama and pull the models
 
 ```
-ollama pull qwen2.5:7b
+ollama pull qwen2.5:7b      # interview questions and feedback
+ollama pull gpt-oss:20b     # CV Builder
 ```
 
 Ollama must be running (`ollama serve`, or the desktop app). To use Ollama on another
 machine on your network, set `OLLAMA_HOST` in `.env`.
+
+The CV Builder keeps `gpt-oss:20b` because its prompts and token budgets were tuned for
+that model. It's a reasoning model, so each CV Builder step takes roughly 10 to 60 seconds.
+
+**VRAM:** `gpt-oss:20b` (about 13 GB) and `qwen2.5:7b` (about 5 GB) don't both fit on most
+GPUs, so they take turns: Ollama unloads one to load the other. `LLM_KEEP_ALIVE` keeps the
+interview model loaded between requests, so the first CV Builder step after practising (and
+the first question generation after building a CV) is slower while the models swap. With
+enough VRAM for both, they stay loaded side by side. If `gpt-oss:20b` doesn't fit at all,
+set `CV_BUILDER_LLM_BACKEND=groq` and add a `GROQ_API_KEY` (optional fallback; this sends
+CV Builder conversations to Groq's cloud API).
 
 ### 2. Configure
 
@@ -63,6 +90,11 @@ cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-cuda.txt
 ```
+The requirements include the CV Builder's `sentence-transformers`, which **pulls in
+PyTorch** (a large install, a few hundred MB for the CPU build), and it downloads the
+`all-MiniLM-L6-v2` embedding model (about 90 MB) from Hugging Face the first time you match
+jobs. Both run on the CPU.
+
 On Linux, if CUDA libraries aren't found at runtime, add the pip wheel library
 directories to `LD_LIBRARY_PATH`:
 ```
@@ -106,10 +138,35 @@ stop both.
 
 ## Using it
 
-1. **Upload** your CV (PDF or DOCX) and paste the job description. Check the extracted CV
-   text and fix anything that parsed badly.
+The header links to **Build a CV** and **Practise** from every page.
+
+### Build a CV
+
+1. **Introduce yourself**: education, skills, projects or experience, target roles.
+2. **Follow-ups**: the CV Builder asks for anything still missing in one combined question,
+   then reviews your projects one detail at a time (dates, what you built). If the
+   conversation runs too long, you go straight to the form to fill in the rest.
+3. **Confirm** the whole profile on one editable form.
+4. **Pick a job** from your top 3 matches (title, location and the most relevant line).
+5. **Requirement check**: if the job asks for things your profile doesn't show, you're asked
+   about them once. Anything you don't confirm stays off the CV.
+6. **Your CV**: see matched skills and missing requirements, edit the text, preview and
+   download the PDF, or press **Practise the interview for this job**. That creates a
+   practice session from this CV and job directly, with nothing to download or upload.
+
+Builds are saved, so a refresh or restart loses nothing. **Edit profile** on the job and CV pages takes you back to the form (you then pick the
+job again and the CV is regenerated).
+
+### Practise
+
+1. **Choose a CV**: upload one (PDF or DOCX) and paste the job description, or pick **Use a
+   CV I built**, which fills in the job description from that build (you can still edit it).
+   Check the extracted CV text and fix anything that parsed badly.
 2. **Questions**: 5 are generated (behavioural, technical, CV-specific; easy to hard).
-   "Generate more" adds more, optionally of one type or difficulty, without repeats.
+   "Generate more" adds more, optionally of one type or difficulty, without repeats. For a
+   CV from the CV Builder, the page shows the job it was built for and its missing
+   requirements; each batch includes a question on how you'd handle one of those gaps, and
+   CV-specific questions favour projects that use your matched skills.
 3. **Answer** a question out loud: record, replay, re-record, submit. You get the
    transcript and delivery metrics in about a second, the score in about 7 seconds, and
    written feedback streams in after that (timings on an RTX 5060 Ti with `qwen2.5:7b`).
@@ -167,19 +224,26 @@ feedback screen, so hardware setups can be compared.
 | `OLLAMA_HOST` | `http://localhost:11434` | |
 | `LLM_KEEP_ALIVE` | `30m` | keeps the model loaded between requests |
 | `LLM_TEMPERATURE` | `0.2` | |
+| `CV_BUILDER_LLM_BACKEND` | `local` | `local` (Ollama) \| `groq` |
+| `CV_BUILDER_LLM_MODEL` | `gpt-oss:20b` | Ollama model for the CV Builder; its prompts were tuned for this one |
+| `LOCAL_LLM_NUM_CTX` | `16384` | CV Builder context window; Ollama's 4096 default returns empty replies for its ~4k-token prompts |
+| `GROQ_API_KEY` | (unset) | only for `CV_BUILDER_LLM_BACKEND=groq`; never commit it |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model for the CV Builder |
 | `WHISPER_BACKEND` | `faster-whisper` | `faster-whisper` \| `whisper-cpp` \| `mlx` |
 | `WHISPER_MODEL_SIZE` | `large-v3-turbo` | `small` \| `medium` \| `large-v3-turbo` |
 | `WHISPER_DEVICE` | `cuda` | `cuda` \| `cpu` |
 | `WHISPER_COMPUTE_TYPE` | `float16` | `float16` \| `int8` |
-| `AUDIO_RETENTION_DAYS` | `7` | sessions (CV, audio, transcripts) older than this are deleted |
+| `AUDIO_RETENTION_DAYS` | `7` | sessions (CV, audio, transcripts) and CV builds older than this are deleted |
 
 ## Privacy
 
-All data stays in `backend/data/` (SQLite database and uploads). CV contents and
-transcripts are never logged. Sessions older than `AUDIO_RETENTION_DAYS` (CV file, audio,
-transcripts, feedback) are deleted automatically, at startup and every 6 hours, along with
+All data stays in `backend/data/` (SQLite database and uploads). CV contents, CV Builder
+conversations and profiles, and transcripts are never logged. Sessions (CV file, audio,
+transcripts, feedback) and CV builds (conversation, profile, generated CV and PDF) older than
+`AUDIO_RETENTION_DAYS` are deleted automatically, at startup and every 6 hours, along with
 any upload files no longer referenced by the database. Delete `backend/data/` to remove
-everything immediately.
+everything immediately. With `CV_BUILDER_LLM_BACKEND=groq`, CV Builder conversations are
+sent to Groq.
 
 ## Tests
 
@@ -187,4 +251,42 @@ everything immediately.
 cd backend
 .venv/Scripts/python -m pytest      # Windows
 .venv/bin/python -m pytest          # macOS / Linux
+```
+
+The pytest suite uses fake LLMs and a stubbed embedding model, so it needs neither Ollama
+nor the embedding model download.
+
+### CV Builder CLI and Assignment 1 scripts
+
+The Assignment 1 command-line flow and test scripts still run, from `backend/`. They call
+the real CV Builder model and use the same `.env` settings as the app:
+
+```
+cd backend
+.venv/Scripts/python -m app.cv_builder.cv_builder_cli --help
+.venv/Scripts/python -m app.cv_builder.tests.run_agent_tests
+```
+
+The test scripts write their evidence into `CV_Builder/03_Evidence/`, the Assignment 1
+record.
+
+## Project structure
+
+```
+backend/
+  app/
+    cv_builder/         Assignment 1 core: profile agent, job retrieval, CV generation, PDF
+      data/             jobs.jsonl (9 postings) and the A1 synthetic profiles
+      tests/            A1 test scripts (write to CV_Builder/03_Evidence/)
+    routers/            API: sessions, questions, attempts, cv_builds, health
+    services/           interview pipeline, question generation, cv_builds (CV Builder state)
+    prompts/            interview prompt templates
+    models.py, db.py    SQLite tables (sessions, questions, attempts, cv_builds)
+  tests/                pytest suite
+  evals/                evaluator test set
+frontend/src/
+  pages/                landing, CV Builder (BuildIntroPage, BuildPage), setup, questions, ...
+  components/cvbuilder/ CV Builder steps: follow-up chat, profile form, jobs, CV editor
+CV_Builder/             Assignment 1 report, architecture and evidence (source moved to backend/)
+scripts/setup_check.py  hardware and configuration check
 ```
