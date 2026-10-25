@@ -36,7 +36,7 @@ from .cv_parser import parse_cv
 
 log = logging.getLogger(__name__)
 
-# The old GUI's caps (see CV_Builder/01_System/architecture.md, "Step limits").
+# The old A1 GUI's caps.
 STEP_CAP = 5
 REVIEW_STEP_CAP = 10
 JOBS_PATH = Path(__file__).resolve().parents[1] / "cv_builder" / "data" / "jobs.jsonl"
@@ -340,7 +340,7 @@ def select_job(db: Session, build_id: str, job_id: str) -> CvBuild:
 
 def answer_requirements(db: Session, build_id: str, text: str | None) -> CvBuild:
     """Resolve the job's requirement gaps from one reply, then run the same reply through general
-    extraction, exactly as cv_builder_cli.run_full_flow does. `text=None` skips: every gap is
+    extraction, exactly as the A1 CLI flow does. `text=None` skips: every gap is
     recorded as not held (what resolve() does for anything not clearly confirmed)."""
     build = load_build(db, build_id)
     _require(build, CvBuildStage.requirements)

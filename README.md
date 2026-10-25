@@ -10,9 +10,8 @@ with two ways in from the landing page:
 2. **Start practising**: upload a CV (or pick one you built), add the job description,
    answer generated questions out loud, and get feedback on each attempt.
 
-The CV Builder is the Assignment 1 system (`CV_Builder/` holds its original report and
-evidence); RehearseAI extends it with the spoken mock interview. Sessions started from a
-built CV know which skills matched the job and which requirements the CV doesn't show, and
+The CV Builder is the Assignment 1 system; RehearseAI extends it with the spoken mock
+interview. Sessions started from a built CV know which skills matched the job and which requirements the CV doesn't show, and
 the interview asks about those gaps.
 
 No external APIs by default; nothing leaves your machine after setup.
@@ -256,20 +255,6 @@ cd backend
 The pytest suite uses fake LLMs and a stubbed embedding model, so it needs neither Ollama
 nor the embedding model download.
 
-### CV Builder CLI and Assignment 1 scripts
-
-The Assignment 1 command-line flow and test scripts still run, from `backend/`. They call
-the real CV Builder model and use the same `.env` settings as the app:
-
-```
-cd backend
-.venv/Scripts/python -m app.cv_builder.cv_builder_cli --help
-.venv/Scripts/python -m app.cv_builder.tests.run_agent_tests
-```
-
-The test scripts write their evidence into `CV_Builder/03_Evidence/`, the Assignment 1
-record.
-
 ## Project structure
 
 ```
@@ -277,7 +262,6 @@ backend/
   app/
     cv_builder/         Assignment 1 core: profile agent, job retrieval, CV generation, PDF
       data/             jobs.jsonl (9 postings) and the A1 synthetic profiles
-      tests/            A1 test scripts (write to CV_Builder/03_Evidence/)
     routers/            API: sessions, questions, attempts, cv_builds, health
     services/           interview pipeline, question generation, cv_builds (CV Builder state)
     prompts/            interview prompt templates
@@ -287,6 +271,5 @@ backend/
 frontend/src/
   pages/                landing, CV Builder (BuildIntroPage, BuildPage), setup, questions, ...
   components/cvbuilder/ CV Builder steps: follow-up chat, profile form, jobs, CV editor
-CV_Builder/             Assignment 1 report, architecture and evidence (source moved to backend/)
 scripts/setup_check.py  hardware and configuration check
 ```

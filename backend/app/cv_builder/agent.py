@@ -14,7 +14,7 @@ from .profile_tool import ProfileTool
 DEFAULT_MODEL = "openai/gpt-oss-20b"
 
 # RehearseAI's repo-root .env (this was 02_Setup/.env while the CV Builder was a
-# standalone project - see CV_Builder/02_Setup/).
+# standalone project).
 ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
 # This account's per-request AND rolling tokens-per-minute ceiling (prompt +

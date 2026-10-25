@@ -223,3 +223,8 @@ frontend/dist/
 *.db
 *.tsbuildinfo
 backend/evals/results/
+
+# Assignment 1 CLI and test scripts: kept locally, not needed by the app
+backend/app/cv_builder/cv_builder_cli.py
+backend/app/cv_builder/export_cv.py
+backend/app/cv_builder/tests/
